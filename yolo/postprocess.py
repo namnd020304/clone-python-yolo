@@ -1,4 +1,6 @@
 """Bước 9: từ đầu ra (1, 84, 8400) lấy ra danh sách box cuối cùng."""
+import math
+
 import torch
 
 
@@ -10,6 +12,28 @@ def box_iou(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     rb = torch.min(a[:, None, 2:], b[None, :, 2:])
     inter = (rb - lt).clamp(min=0).prod(dim=2)
     return inter / (area_a[:, None] + area_b[None, :] - inter).clamp(min=1e-9)
+
+
+def bbox_ciou(a: torch.Tensor, b: torch.Tensor, eps: float = 1e-7) -> torch.Tensor:
+    """Complete IoU giữa các box xyxy ghép theo phần tử (broadcast): a (..., 4), b (..., 4) -> (...).
+
+    CIoU = IoU - (khoảng cách hai tâm)^2 / (đường chéo box bao)^2 - alpha * v,
+    với v đo độ lệch tỉ lệ w/h. Khác IoU, CIoU vẫn có gradient khi hai box không giao nhau.
+    """
+    ax1, ay1, ax2, ay2 = a.unbind(-1)
+    bx1, by1, bx2, by2 = b.unbind(-1)
+    w1, h1 = ax2 - ax1, ay2 - ay1 + eps
+    w2, h2 = bx2 - bx1, by2 - by1 + eps
+    inter = (torch.min(ax2, bx2) - torch.max(ax1, bx1)).clamp(0) * (torch.min(ay2, by2) - torch.max(ay1, by1)).clamp(0)
+    iou = inter / (w1 * h1 + w2 * h2 - inter + eps)
+    cw = torch.max(ax2, bx2) - torch.min(ax1, bx1)          # box bao nhỏ nhất
+    ch = torch.max(ay2, by2) - torch.min(ay1, by1)
+    c2 = cw ** 2 + ch ** 2 + eps                             # đường chéo box bao, bình phương
+    rho2 = ((bx1 + bx2 - ax1 - ax2) ** 2 + (by1 + by2 - ay1 - ay2) ** 2) / 4  # khoảng cách hai tâm, bình phương
+    v = (4 / math.pi ** 2) * ((w2 / h2).atan() - (w1 / h1).atan()) ** 2
+    with torch.no_grad():
+        alpha = v / (v - iou + (1 + eps))
+    return iou - (rho2 / c2 + v * alpha)
 
 
 def nms(boxes: torch.Tensor, scores: torch.Tensor, iou_thres: float) -> torch.Tensor:

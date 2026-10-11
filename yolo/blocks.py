@@ -13,7 +13,7 @@ class Conv(nn.Module):
     def __init__(self, c_in: int, c_out: int, k: int = 1, s: int = 1):
         super().__init__()
         self.conv = nn.Conv2d(c_in, c_out, k, s, k // 2, bias=False)
-        self.bn = nn.BatchNorm2d(c_out)
+        self.bn = nn.BatchNorm2d(c_out, eps=1e-3, momentum=0.03)  # giống Ultralytics
         self.act = nn.SiLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -27,7 +27,7 @@ class Bottleneck(nn.Module):
         super().__init__()
         self.conv1 = Conv(c, c, k=3, s=1)
         self.conv2 = Conv(c, c, k=3, s=1)
-        self.shortcut = shortcut and c == c
+        self.shortcut = shortcut
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.conv2(self.conv1(x)) if self.shortcut else self.conv2(self.conv1(x))
@@ -62,7 +62,7 @@ class SPPF(nn.Module):
     def __init__(self, c_in: int, c_out: int, k: int = 5):
         super().__init__()
         self.conv1 = Conv(c_in, c_in // 2, k=1, s=1)
-        self.maxpool = nn.MaxPool2d(kernel_size=k, stride=1, padding=2)
+        self.maxpool = nn.MaxPool2d(kernel_size=k, stride=1, padding=k // 2)
         self.conv2 = Conv(c_in * 2, c_out, k=1, s=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

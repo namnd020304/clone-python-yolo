@@ -31,6 +31,9 @@ Chương trình chấm chỉ kiểm tra **shape** và vài con số (số tham s
 **Sau bước 9 (tuỳ chọn, khó):** nạp trọng số `yolov8n.pt` gốc vào model của bạn để chạy ra box thật trên ảnh; viết
 loss (TAL assigner, CIoU, DFL) và train trên dataset nhỏ; port sang LibTorch.
 
+**Giai đoạn 2 (bước 10–15, đã làm):** train model tự viết. Lý thuyết từng bước ở [docs/train/](docs/train/README.md):
+dữ liệu, đầu ra thô của head, gán nhãn TAL, loss, vòng lặp train, mAP, dataset Kaggle và train trên cloud.
+
 ## Con số cần nhớ (YOLOv8n, ảnh 640)
 
 - `width = 0.25`, `depth = 0.33`: kênh gốc 64/128/256/512/1024 nhân 0.25 → **16/32/64/128/256**; số lần lặp C2f
