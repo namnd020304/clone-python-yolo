@@ -2,8 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 *.pt
-result.jpg
+/result.jpg
 venv/
 datasets/
 runs/
-predict.jpg
+/predict.jpg
