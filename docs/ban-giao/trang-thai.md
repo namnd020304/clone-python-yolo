@@ -13,7 +13,10 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
   175 ảnh val (12/10, 100 epoch trên máy ảo GCP, **chưa có** EMA + mosaic).
 - Mọi thứ đã commit và push (`0fa7f9d`, 15/10). `best.pt` + `train.log` nằm ở
   [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0).
-- Làm tiếp được ngay: thêm resume cho `train.py`; train lại `bien-bao` có EMA + mosaic để so với 0.705 (van-de-mo #1).
+- **Đang chạy:** train YOLOv8n từ số 0 trên COCO 2017, 30 epoch, VM GCP `yolo-coco` (`us-east1-b`), bắt đầu
+  05:06 UTC 15/10, dự kiến xong ~21/10. Xem: `gcloud compute ssh yolo-coco --zone=us-east1-b
+  --command="tail -5 ~/yolo/runs/coco-scratch/train.log"`. Xong thì lấy `runs/` về và **xoá VM**.
+- Làm tiếp được ngay: train lại `bien-bao` có EMA + mosaic để so với 0.705 (van-de-mo #1).
 
 ## Theo plan
 
@@ -37,7 +40,8 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 | 2b | `webcam.py` | Code xong, **chưa có người xem cửa sổ camera chạy thật** (12/10) | Đã kiểm phần xử lý trên `bus.jpg` và đọc được khung hình |
 | 2b | Báo cáo `docs/bao-cao-yolov8n.docx` | Xong (12/10) | Chưa xem giao diện trong Word |
 | — | Tài liệu bàn giao `docs/` | Xong bản đầu (15/10) | |
-| 6.1 | Resume từ `last.pt` | Chưa làm | Cần trước khi chạy máy ảo spot |
+| 6.1 | Resume từ `last.pt` | Xong (15/10) | `--resume`; thử trên coco8 |
+| — | Train COCO từ số 0 | Đang chạy (15/10) | 30 epoch, ~4,7 giờ/epoch |
 | 6.2 | HSV, xoay / co giãn | Chưa làm | |
 | 3 | Port C++ / LibTorch | Chưa làm | Chờ học xong C1–C3 |
 

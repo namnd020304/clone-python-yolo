@@ -44,8 +44,8 @@ class YoloDataset(torch.utils.data.Dataset):
     """Trả về (ảnh (3, size, size) float 0..1, nhãn (n, 5) = [class, x1, y1, x2, y2] pixel trong ảnh size x size).
 
     augment=True:
-      - mosaic với xác suất self.mosaic (mặc định 1.0): ghép 4 ảnh, co giãn ngẫu nhiên x0.5..1.5 rồi cắt về size.
-        train.py tắt mosaic (đặt self.mosaic = 0) ở vài epoch cuối, giống Ultralytics.
+      - mosaic với xác suất self.mosaic (mặc định 1.0): ghép 4 ảnh quanh một điểm chung, zoom ngẫu nhiên x0.5..1.5
+        (xem load_mosaic). train.py tắt mosaic (đặt self.mosaic = 0) ở vài epoch cuối.
       - lật ngang ngẫu nhiên và đổi độ sáng nhẹ.
     augment=False: chỉ letterbox (dùng cho tập val).
     """
@@ -73,75 +73,65 @@ class YoloDataset(torch.utils.data.Dataset):
             return np.zeros((0, 5), dtype=np.float32)
         return np.loadtxt(p, dtype=np.float32, ndmin=2)[:, :5]
 
-    def load_resized(self, i: int) -> tuple[np.ndarray, torch.Tensor]:
-        """Ảnh thứ i co về cạnh dài = size (giữ tỉ lệ, chưa thêm viền) và nhãn [class, x1, y1, x2, y2] pixel của ảnh đó."""
+    def load_scaled(self, i: int, long_side: int) -> tuple[np.ndarray, torch.Tensor]:
+        """Ảnh thứ i co về cạnh dài = long_side (giữ tỉ lệ) và nhãn [class, x1, y1, x2, y2] pixel trong ảnh đã co."""
         path = self.files[i]
         image = Image.open(path).convert("RGB")
-        r = self.size / max(image.size)
-        w, h = max(1, round(image.width * r)), max(1, round(image.height * r))
+        f = long_side / max(image.size)
+        w, h = max(1, round(image.width * f)), max(1, round(image.height * f))
         image = np.array(image.resize((w, h), Image.BILINEAR))
-        lab = torch.from_numpy(self.load_labels(path))
-        boxes = torch.stack([(lab[:, 1] - lab[:, 3] / 2) * w, (lab[:, 2] - lab[:, 4] / 2) * h,
-                             (lab[:, 1] + lab[:, 3] / 2) * w, (lab[:, 2] + lab[:, 4] / 2) * h], dim=1)
-        return image, torch.cat([lab[:, :1], boxes], dim=1)
+        cls, cx, cy, bw, bh = torch.from_numpy(self.load_labels(path)).unbind(1)
+        boxes = torch.stack([cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2], dim=1) * torch.tensor([w, h, w, h])
+        return image, torch.cat([cls[:, None], boxes], dim=1)
 
     def load_mosaic(self, i: int) -> tuple[torch.Tensor, torch.Tensor]:
-        """Ghép ảnh i và 3 ảnh ngẫu nhiên vào khung 2s x 2s quanh tâm (xc, yc) ngẫu nhiên:
+        """Mosaic của YOLOv8: 4 ảnh chạm nhau tại một điểm chung, nhìn qua một cửa sổ có zoom.
 
-            ┌─────────┬─────────┐
-            │  ảnh 0  │  ảnh 1  │      góc dưới-phải của ảnh 0, góc dưới-trái của ảnh 1, ...
-            ├─────────●─────────┤      cùng chạm vào tâm ● = (xc, yc)
-            │  ảnh 2  │  ảnh 3  │
-            └─────────┴─────────┘
+        Hình dung một mặt phẳng rộng 2s x 2s. Điểm chung J nằm ngẫu nhiên trong vùng giữa [s/2, 3s/2]. Ảnh i và 3
+        ảnh ngẫu nhiên (cạnh dài s) mỗi ảnh nằm về một phía của J, một góc của ảnh chạm J:
 
-        Rồi lấy một cửa sổ cỡ s / r (r ngẫu nhiên 0.5..1.5) quanh tâm khung, dịch ngẫu nhiên ±10%, co về s x s.
-        r < 1: cửa sổ lớn, vật bị thu nhỏ (luyện vật nhỏ); r > 1: vật được phóng to.
+                 ┌───────┐┌───────┐
+                 │ (-,-) ││ (+,-) │        hướng (hx, hy) của từng ảnh so với J
+                 └───────J└───────┘
+                 ┌───────┐┌───────┐
+                 │ (-,+) ││ (+,+) │
+                 └───────┘└───────┘
+
+        Ảnh đầu ra là cửa sổ cạnh s / zoom (zoom ngẫu nhiên 0.5..1.5) đặt quanh tâm mặt phẳng, lệch ngẫu nhiên ±10%,
+        phóng về s x s. Thay vì dựng mặt phẳng rồi cắt, mỗi ảnh được co thẳng theo zoom và dán vào đầu ra:
+        điểm P của mặt phẳng nằm ở (P - góc cửa sổ) x zoom trong ảnh đầu ra.
         """
         s = self.size
-        pad = s // 2                                       # lề quanh khung để cửa sổ có tràn ra cũng không lỗi
-        canvas = np.full((2 * s + 2 * pad, 2 * s + 2 * pad, 3), 114, dtype=np.uint8)
-        xc, yc = (int(s * (0.5 + torch.rand(1).item())) for _ in range(2))  # tâm trong [s/2, 3s/2]
-        ids = [i] + torch.randint(len(self), (3,)).tolist()
-        labels = []
-        for k, j in enumerate(ids):
-            img, lab = self.load_resized(j)
-            h, w = img.shape[:2]
-            if k == 0:    # trên-trái: góc dưới-phải chạm tâm
-                x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc
-            elif k == 1:  # trên-phải
-                x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, 2 * s), yc
-            elif k == 2:  # dưới-trái
-                x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(yc + h, 2 * s)
-            else:         # dưới-phải
-                x1a, y1a, x2a, y2a = xc, yc, min(xc + w, 2 * s), min(yc + h, 2 * s)
-            # phần ảnh nguồn được dán: ảnh bên trái/trên bị cắt mất phần xa tâm
-            x1b = w - (x2a - x1a) if k in (0, 2) else 0
-            y1b = h - (y2a - y1a) if k in (0, 1) else 0
-            canvas[pad + y1a:pad + y2a, pad + x1a:pad + x2a] = img[y1b:y1b + (y2a - y1a), x1b:x1b + (x2a - x1a)]
-            lab[:, [1, 3]] += x1a - x1b                    # toạ độ trong ảnh nguồn -> toạ độ trong khung 2s
-            lab[:, [2, 4]] += y1a - y1b
-            lab[:, 1:] = torch.max(torch.min(lab[:, 1:], torch.tensor([x2a, y2a, x2a, y2a])),
-                                   torch.tensor([x1a, y1a, x1a, y1a]))  # cắt box theo phần ảnh thực sự được dán
-            labels.append(lab)
-        labels = torch.cat(labels)
+        rand = lambda lo, hi: lo + (hi - lo) * torch.rand(1).item()
+        zoom = rand(0.5, 1.5)
+        joint = torch.tensor([rand(0.5, 1.5), rand(0.5, 1.5)]) * s                # J, toạ độ mặt phẳng
+        corner = torch.tensor([rand(0.9, 1.1), rand(0.9, 1.1)]) * s - s / (2 * zoom)  # góc trên-trái cửa sổ
+        to_out = lambda p: (p - corner) * zoom                                     # mặt phẳng -> ảnh đầu ra
+        plane = torch.cat([to_out(torch.zeros(2)), to_out(torch.full((2,), 2.0 * s))]).round()  # mép mặt phẳng
+        frame = torch.tensor([0.0, 0.0, s, s])
 
-        # cửa sổ s / r quanh tâm khung (s, s), dịch ±0.1 s
-        r = 0.5 + torch.rand(1).item()
-        win = s / r
-        cx, cy = (s + (torch.rand(1).item() * 0.2 - 0.1) * s for _ in range(2))
-        x0, y0 = cx - win / 2, cy - win / 2
-        crop = Image.fromarray(canvas).resize((s, s), Image.BILINEAR,
-                                              box=(x0 + pad, y0 + pad, x0 + pad + win, y0 + pad + win))
-        x = torch.from_numpy(np.array(crop)).permute(2, 0, 1).float() / 255
+        out = np.full((s, s, 3), 114, dtype=np.uint8)
+        found = []
+        for (hx, hy), j in zip([(-1, -1), (1, -1), (-1, 1), (1, 1)], [i] + torch.randint(len(self), (3,)).tolist()):
+            img, lab = self.load_scaled(j, max(1, round(s * zoom)))
+            size = torch.tensor([img.shape[1], img.shape[0]])
+            j_out = to_out(joint).round()
+            start = j_out - size * torch.tensor([hx == -1, hy == -1])              # góc trên-trái của ảnh ở đầu ra
+            placed = torch.cat([start, start + size])
+            ref = _intersect(placed, plane)                                        # phần ảnh nằm trên mặt phẳng
+            vis = _intersect(ref, frame)                                           # ... và lọt vào cửa sổ
+            l, t, r, b = vis.int().tolist()
+            if r > l and b > t:
+                sl, st = l - int(start[0]), t - int(start[1])
+                out[t:b, l:r] = img[st:st + b - t, sl:sl + r - l]
 
-        before = labels[:, 1:].clone()                     # box trong khung, chưa cắt theo cửa sổ
-        boxes = (before - torch.tensor([x0, y0, x0, y0])) * r
-        boxes = boxes.clamp(0, s)
-        # bỏ box bị cắt gần hết: cạnh < 2 px, hoặc còn < 10% diện tích (so với lúc chưa cắt)
-        wh = boxes[:, 2:] - boxes[:, :2]
-        wh0 = (before[:, 2:] - before[:, :2]) * r
-        keep = (wh > 2).all(1) & (wh.prod(1) > 0.1 * wh0.prod(1).clamp(min=1e-6))
-        return x, torch.cat([labels[keep, :1], boxes[keep]], dim=1)
+            boxes = lab[:, 1:] + start.repeat(2)
+            before, after = _intersect(boxes, ref), _intersect(boxes, vis)
+            # giữ box còn thấy rõ: cạnh > 2 px và diện tích > 10% so với lúc chưa bị cửa sổ cắt
+            seen, whole = _wh(after), _wh(before)
+            keep = (seen > 2).all(1) & (seen.prod(1) > 0.1 * whole.prod(1).clamp(min=1e-6))
+            found.append(torch.cat([lab[keep, :1], after[keep]], dim=1))
+        return torch.from_numpy(out).permute(2, 0, 1).float() / 255, torch.cat(found)
 
     def __getitem__(self, i: int):
         if self.augment and torch.rand(1).item() < self.mosaic:
@@ -164,6 +154,16 @@ class YoloDataset(torch.utils.data.Dataset):
                 labels[:, [1, 3]] = self.size - labels[:, [3, 1]]
             x = (x * (0.75 + 0.5 * torch.rand(1))).clamp(0, 1)            # sáng / tối hơn tối đa 25%
         return x, labels
+
+
+def _intersect(boxes: torch.Tensor, rect: torch.Tensor) -> torch.Tensor:
+    """Phần giao của box (..., 4) [x1, y1, x2, y2] với hình chữ nhật rect (4,); rỗng thì x2 < x1 hoặc y2 < y1."""
+    return torch.cat([boxes[..., :2].maximum(rect[:2]), boxes[..., 2:].minimum(rect[2:])], dim=-1)
+
+
+def _wh(boxes: torch.Tensor) -> torch.Tensor:
+    """Rộng, cao của box (n, 4); box rỗng ra 0."""
+    return (boxes[:, 2:] - boxes[:, :2]).clamp(min=0)
 
 
 def collate(batch):

@@ -7,6 +7,7 @@
 --data là thư mục có images/<split> và labels/<split>; để "coco8" thì tự tải về datasets/coco8.
 Nếu thư mục có classes.txt (mỗi dòng một tên class) thì số class và tên class lấy từ đó, không cần --nc.
 Checkpoint lưu vào --out (last.pt, best.pt) là trọng số EMA; xem kết quả bằng predict.py.
+Bị ngắt giữa chừng: chạy lại đúng lệnh cũ thêm --resume <out>/last.pt.
 Augmentation khi train: mosaic (tắt ở --close-mosaic epoch cuối), lật ngang, đổi độ sáng; --no-augment tắt hết.
 """
 import argparse
@@ -67,6 +68,7 @@ def main():
     ap.add_argument("--val-split", default="val")
     ap.add_argument("--nc", type=int, default=0, help="số class; 0 = đọc từ classes.txt, không có thì 80")
     ap.add_argument("--weights", default="", help="yolov8n.pt hoặc checkpoint của train.py; bỏ trống = train từ đầu")
+    ap.add_argument("--resume", default="", help="last.pt của lần chạy bị ngắt; các tham số khác phải giữ như cũ")
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--size", type=int, default=640)
@@ -77,6 +79,7 @@ def main():
     ap.add_argument("--close-mosaic", type=int, default=10, help="tắt mosaic ở N epoch cuối")
     ap.add_argument("--no-ema", action="store_true")
     ap.add_argument("--eval-every", type=int, default=10)
+    ap.add_argument("--log-every", type=int, default=0, help="in loss mỗi N vòng lặp trong epoch; 0 = không in")
     ap.add_argument("--workers", type=int, default=0)
     ap.add_argument("--out", default="runs/train")
     args = ap.parse_args()
@@ -115,12 +118,21 @@ def main():
     warmup = min(max(3 * len(train_loader), 10), total // 5)
     print(f"{len(train_set)} ảnh train, {len(val_set)} ảnh val, {args.nc} class, {total} vòng lặp, lr {args.lr}, "
           f"thiết bị {device}")
-    if args.weights:
+    best, it, start = -1.0, 0, 1
+    if args.resume:
+        ckpt = torch.load(args.resume, map_location=device, weights_only=False)
+        model.load_state_dict(ckpt["train_model"])
+        optimizer.load_state_dict(ckpt["optimizer"])
+        if ema:
+            ema.ema.load_state_dict(ckpt["model"])
+            ema.updates = ckpt["ema_updates"]
+        best, it, start = ckpt["best"], ckpt["it"], ckpt["epoch"] + 1
+        print(f"Chạy tiếp từ epoch {start} ({args.resume})")
+    elif args.weights:
         m50, m = evaluate(model, val_loader)
         print(f"Trước khi train: mAP50 {m50:.3f}  mAP50-95 {m:.3f}")
 
-    best, it = -1.0, 0
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(start, args.epochs + 1):
         model.train()
         if train_set.mosaic and epoch > args.epochs - args.close_mosaic:
             train_set.mosaic = 0.0
@@ -139,20 +151,31 @@ def main():
                 ema.update(model)
             sums += loss.detach().cpu()
             it += 1
+            n = it - (epoch - 1) * len(train_loader)
+            if args.log_every and n % args.log_every == 0:
+                box, cls, dfl = (sums / n).tolist()
+                print(f"  epoch {epoch} vòng {n}/{len(train_loader)}  box {box:.3f}  cls {cls:.3f}  dfl {dfl:.3f}  "
+                      f"{time.time() - t0:.0f}s", flush=True)
         box, cls, dfl = (sums / len(train_loader)).tolist()
         line = (f"epoch {epoch:4d}/{args.epochs}  box {box:.3f}  cls {cls:.3f}  dfl {dfl:.3f}  "
                 f"lr {optimizer.param_groups[0]['lr']:.5f}  {time.time() - t0:.1f}s")
 
+        final = ema.ema if ema else model
+        m = None
         if epoch % args.eval_every == 0 or epoch == args.epochs:
-            final = ema.ema if ema else model
             m50, m = evaluate(final, val_loader)
             line += f"  |  mAP50 {m50:.3f}  mAP50-95 {m:.3f}"
-            ckpt = {"model": final.state_dict(), "epoch": epoch, "nc": args.nc, "names": names, "map": m}
-            torch.save(ckpt, out / "last.pt")
             if m > best:
                 best = m
-                torch.save(ckpt, out / "best.pt")
-        print(line)
+                torch.save({"model": final.state_dict(), "epoch": epoch, "nc": args.nc, "names": names, "map": m},
+                           out / "best.pt")
+        # last.pt ghi mỗi epoch, đủ để --resume: "model" là bản EMA (predict.py dùng), "train_model" là bản đang train
+        ckpt = {"model": final.state_dict(), "epoch": epoch, "nc": args.nc, "names": names, "map": m,
+                "train_model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                "ema_updates": ema.updates if ema else 0, "it": it, "best": best}
+        torch.save(ckpt, out / "last.tmp")
+        (out / "last.tmp").replace(out / "last.pt")  # ghi file tạm rồi đổi tên: bị ngắt giữa chừng không hỏng last.pt
+        print(line, flush=True)
     print(f"Xong. mAP50-95 tốt nhất {best:.3f}, checkpoint ở {out}")
 
 

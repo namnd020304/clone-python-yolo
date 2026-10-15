@@ -58,6 +58,7 @@ python train.py --epochs 300 --lr 0.002 --val-split train --no-augment        # 
 | `--train-split`, `--val-split` | Tên thư mục con | `train`, `val` |
 | `--nc` | Số class; 0 = đọc `classes.txt`, không có thì 80 | 0 |
 | `--weights` | `yolov8n.pt` hoặc checkpoint của `train.py`; bỏ trống = train từ đầu | trống |
+| `--resume` | `last.pt` của lần chạy bị ngắt; các tham số khác giữ như cũ | trống |
 | `--epochs`, `--batch`, `--size` | | 100, 8, 640 |
 | `--lr` | 0 = tự tính `0.002 × 5 / (4 + nc)` (QĐ-06) | 0 |
 | `--weight-decay` | | 5e-4 |
@@ -68,12 +69,13 @@ python train.py --epochs 300 --lr 0.002 --val-split train --no-augment        # 
 | `--workers` | Số tiến trình đọc dữ liệu | 0 |
 | `--out` | Nơi lưu `last.pt`, `best.pt` | `runs/train` |
 
-- Checkpoint lưu ở các epoch đo mAP: `last.pt` luôn ghi đè, `best.pt` khi mAP50-95 tốt hơn. Muốn ghi log ra file:
+- `last.pt` ghi đè **mỗi epoch** (kèm optimizer, EMA, vị trí lr để resume); `best.pt` ở epoch đo mAP khi mAP50-95
+  tốt hơn. Muốn ghi log ra file:
   `python train.py ... > runs/ten/train.log`.
 - Thời gian (CPU máy nhà, 702 ảnh, size 640): ~2,5–3 phút/epoch kể cả đo mAP. `--size 416` nhanh hơn khoảng 2 lần.
 - Dataset ~700 ảnh: mAP gần như đứng yên sau epoch 25–50.
-- **Chưa có resume.** Bị ngắt giữa chừng thì chỉ có thể chạy lại với `--weights runs/<ten>/last.pt` (lr và EMA bắt
-  đầu lại từ đầu).
+- Bị ngắt giữa chừng: chạy lại đúng lệnh cũ, thêm `--resume runs/<ten>/last.pt`. Chạy tiếp từ epoch sau epoch
+  cuối đã lưu, giữ optimizer, EMA và lịch lr. Thứ tự xáo dữ liệu không giống hệt lần chạy liền một mạch.
 
 ## Dự đoán: `predict.py`
 

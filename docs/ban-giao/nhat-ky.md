@@ -5,7 +5,25 @@ chép lại diff. Quyết định thiết kế thì ghi vào [../kien-truc/quyet
 
 Mẫu: `## dd/mm/yyyy`, rồi các gạch đầu dòng: Đã làm / Kết quả / Vấn đề / Tiếp theo.
 
-## 15/10/2026
+## 15/10/2026 (chiều): train COCO từ số 0 trên GCP
+
+- Tải COCO 2017 lên VM `yolo-coco` (`n2-standard-8`, `us-east1-b`, ổ 150 GB; us-central1 hết máy): chia như
+  `coco.yaml` của Ultralytics. train2017 118.287 ảnh (117.266 file nhãn), val2017 5.000 (4.952), test2017 40.670
+  (không có nhãn, chỉ chấm được qua server COCO). Tải ~25 GB mất ~2 phút.
+- Đo trên VM: train 0,146 s/ảnh (batch 8 hay 16 như nhau) → **~4,7 giờ/epoch**; đo mAP cả val2017 ~3,6 phút. Tiến
+  trình train ~380% CPU, worker đọc ảnh gần như rảnh: nút thắt là tính toán, không phải mosaic.
+- Thêm `--resume` (last.pt ghi mỗi epoch, kèm optimizer, EMA, vị trí lr) và `--log-every` cho `train.py`.
+- Chạy 30 epoch từ 05:06 UTC 15/10, `--lr 0.001` (lr tự tính 0.000119 là quy tắc Ultralytics cho job ngắn; job dài
+  họ dùng SGD 0.01), `--eval-every 1`, log ở `~/yolo/runs/coco-scratch/train.log`. Dự kiến xong ~21/10, ~56 USD
+  credit; VM tự tắt khi xong. Loss vòng 500 → 4000 của epoch 1: box 3.63 → 3.08, cls 5.70 → 4.91, dfl 4.26 → 3.41.
+- Viết lại `load_mosaic`: giữ thuật toán mosaic của YOLOv8 nhưng trình bày khác bản Ultralytics (hướng (hx, hy) thay
+  cho 4 nhánh if; đổi toạ độ thẳng sang ảnh đầu ra, mỗi ảnh resize một lần). 2.000 mẫu: không box lỗi, 7,0 box/ảnh
+  (bản cũ 7,2), 30 ms/ảnh (bản cũ 35). **Job COCO đang chạy vẫn dùng bản mosaic cũ.**
+- Lỗi đã gặp: `wait` trong `prepare.sh` đợi luôn tiến trình `tee` của `exec > >(tee ...)` nên treo ~35 phút sau khi
+  tải xong. Không dùng `exec > >(tee)` cùng `wait` không đối số.
+- Tiếp theo: theo dõi mAP từng epoch; lấy `last.pt` về máy định kỳ; xong thì lấy `runs/` về và **xoá VM**.
+
+## 15/10/2026 (sáng)
 
 - Dựng bộ tài liệu bàn giao trong `docs/` theo mẫu: `README`, `ke-hoach-hoc.md` (plan học lấy từ README gốc và các
   buổi trước), `ban-giao/`, `kien-truc/`, `huong-dan/`. Bộ lý thuyết `docs/train/` giữ nguyên.
