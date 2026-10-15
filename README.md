@@ -8,13 +8,17 @@
 
 ## Kết quả
 
-<p align="center"><img src="docs/images/bien-bao-road160.jpg" width="300" alt="Model tự train nhận ra biển stop 0.98 và crosswalk 0.97 trên ảnh road160"></p>
-
 Model tự viết, fine-tune 100 epoch trên dataset biển báo (Kaggle `andrewmvd/road-sign-detection`, 4 class), chạy trên
-ảnh `road160` của tập val (ảnh model chưa thấy khi train): nhận đúng `stop 0.98` và `crosswalk 0.97`. Ảnh này còn một
-biển crosswalk rất nhỏ ở xa (khoảng 7×9 px) mà model bỏ sót. Trên 175 ảnh val: **mAP50 0.836, mAP50-95 0.705**.
-Trọng số ở [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0); tạo lại ảnh bằng
-`python predict.py best.pt datasets/bien-bao/images/val/road160.png`.
+3 ảnh của tập val (model chưa thấy khi train). Trên cả 175 ảnh val: **mAP50 0.836, mAP50-95 0.705**.
+
+| `road160` | `road108` | `road239` |
+|:---:|:---:|:---:|
+| <img src="docs/images/bien-bao-road160.jpg" height="300" alt="stop 0.98 và crosswalk 0.97 trên ảnh road160"> | <img src="docs/images/bien-bao-road108.jpg" height="300" alt="speedlimit 0.89 trên ảnh road108"> | <img src="docs/images/bien-bao-road239.jpg" height="300" alt="speedlimit 0.53 trên ảnh road239"> |
+| `stop 0.98`, `crosswalk 0.97`; bỏ sót một biển crosswalk ~7×9 px ở xa | `speedlimit 0.89`, biển nhỏ 13×12 px | `speedlimit 0.53`, đúng nhưng điểm thấp vì biển rất nhỏ |
+
+Vật nhỏ là điểm yếu chính của model hiện tại. Trọng số ở
+[Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0); tạo lại ảnh bằng
+`python predict.py best.pt datasets/bien-bao/images/val/road160.png` (đổi tên ảnh cho 2 ảnh còn lại).
 
 **Cách làm:** mỗi file trong `yolo/` là một bước. Hàm/lớp đang `raise NotImplementedError`; bạn viết phần thân rồi
 chạy chương trình chấm (cài môi trường: [docs/huong-dan/cai-dat-moi-truong.md](docs/huong-dan/cai-dat-moi-truong.md)):
