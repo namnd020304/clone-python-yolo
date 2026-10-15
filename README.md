@@ -71,4 +71,4 @@ dữ liệu, đầu ra thô của head, gán nhãn TAL, loss, vòng lặp train,
   `ultralytics/cfg/models/v8/yolov8.yaml` trên GitHub.
 - PyTorch: [Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html),
   [`torch.nn`](https://docs.pytorch.org/docs/stable/nn.html).
-- Chỉ đọc code của Ultralytics **sau khi** bước tương ứng đã qua chương trình chấm, để so cách viết.
+- Sau khi tự build lại các lớp xử lý của model dựa trên kiến trúc được công bố của Ultralytics, đọc lại kiến trúc thực tế của YOLOv8 tránh việc trùng lặp trong code gây vi phạm quyền sở hữu
