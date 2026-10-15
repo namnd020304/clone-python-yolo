@@ -8,10 +8,13 @@
 
 ## Kết quả
 
-<p align="center"><img src="docs/images/result.jpg" width="420" alt="Model tự viết nhận ra 4 người và 1 xe buýt trên ảnh bus.jpg"></p>
+<p align="center"><img src="docs/images/bien-bao-road160.jpg" width="300" alt="Model tự train nhận ra biển stop 0.98 và crosswalk 0.97 trên ảnh road160"></p>
 
-Model tự viết nạp trọng số `yolov8n.pt` gốc, chạy trên ảnh `bus.jpg` của Ultralytics: nhận đúng 4 người và 1 xe buýt.
-Đầu ra lệch bản gốc của Ultralytics tối đa 6,1e-05. Tạo lại ảnh này bằng `python load_weights.py` (ra `result.jpg`).
+Model tự viết, fine-tune 100 epoch trên dataset biển báo (Kaggle `andrewmvd/road-sign-detection`, 4 class), chạy trên
+ảnh `road160` của tập val (ảnh model chưa thấy khi train): nhận đúng `stop 0.98` và `crosswalk 0.97`. Ảnh này còn một
+biển crosswalk rất nhỏ ở xa (khoảng 7×9 px) mà model bỏ sót. Trên 175 ảnh val: **mAP50 0.836, mAP50-95 0.705**.
+Trọng số ở [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0); tạo lại ảnh bằng
+`python predict.py best.pt datasets/bien-bao/images/val/road160.png`.
 
 **Cách làm:** mỗi file trong `yolo/` là một bước. Hàm/lớp đang `raise NotImplementedError`; bạn viết phần thân rồi
 chạy chương trình chấm (cài môi trường: [docs/huong-dan/cai-dat-moi-truong.md](docs/huong-dan/cai-dat-moi-truong.md)):
