@@ -27,17 +27,17 @@ Gói `yolo/` là model và mọi thứ cần để train, **không phụ thuộc
 | `yolo/model.py` | `YOLOv8n(num_classes)` = backbone → neck → head | 7 | Xong |
 | `yolo/preprocess.py` | `letterbox` → tensor, `scale`, `(pad_x, pad_y)` | 8 | Xong |
 | `yolo/postprocess.py` | `box_iou`, `bbox_ciou`, `nms`, `postprocess` | 9, 13 | Xong |
-| `yolo/dataset.py` | `YoloDataset` (letterbox / mosaic, lật, độ sáng), `collate`, `download_coco8` | 10, 16 | Xong (mosaic chưa commit) |
+| `yolo/dataset.py` | `YoloDataset` (letterbox / mosaic, lật, độ sáng), `collate`, `download_coco8` | 10, 16 | Xong |
 | `yolo/assigner.py` | `TaskAlignedAssigner` | 12 | Xong |
 | `yolo/loss.py` | `DetectionLoss`, `dfl_loss` | 13 | Xong |
 | `yolo/metrics.py` | `match_predictions`, `average_precision`, `mean_ap`, `evaluate` | 15 | Xong |
-| `yolo/ema.py` | `ModelEMA` | 16 | Xong, chưa commit |
+| `yolo/ema.py` | `ModelEMA` | 16 | Xong (mosaic + EMA chưa đo trên dữ liệu thật) |
 | `train.py` | Vòng lặp train, `load_pretrained`, optimizer, lịch lr | 14 | Xong |
 | `check.py` | 16 bài chấm | — | Xong |
 | `load_weights.py` | Nạp `yolov8n.pt`, so đầu ra với Ultralytics, vẽ `result.jpg` | 9+ | Xong |
 | `kaggle_data.py` | Tải và chuyển dataset (YOLO / VOC) về cấu trúc chuẩn | 2b | Xong |
 | `predict.py` | Chạy checkpoint trên một ảnh | 2b | Xong |
-| `webcam.py` | Chạy theo thời gian thực từ camera | 2b | Code xong, chưa commit |
+| `webcam.py` | Chạy theo thời gian thực từ camera | 2b | Code xong, chưa có người xem chạy thật |
 
 ## 3. Luồng chính
 

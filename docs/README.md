@@ -10,7 +10,7 @@ mới biết, hãy bổ sung vào tài liệu tương ứng sau khi đã hỏi �
 |---|---|---|---|
 | 1 | [../README.md](../README.md) | Dự án là gì, 9 bước dựng model, con số cần nhớ | 5 phút |
 | 2 | [ke-hoach-hoc.md](ke-hoach-hoc.md) | Plan học: 3 giai đoạn, từng bước học gì, kiểm chứng bằng gì | 15 phút |
-| 3 | [ban-giao/trang-thai.md](ban-giao/trang-thai.md) | Đang ở đâu: bước nào xong, đang làm, chưa commit | 10 phút |
+| 3 | [ban-giao/trang-thai.md](ban-giao/trang-thai.md) | Đang ở đâu: bước nào xong, đang làm, chưa làm | 10 phút |
 | 4 | [ban-giao/van-de-mo.md](ban-giao/van-de-mo.md) | Việc còn bỏ ngỏ, điều chưa giải thích được | 5 phút |
 | 5 | [kien-truc/tong-quan-kien-truc.md](kien-truc/tong-quan-kien-truc.md) | Module nào làm gì, luồng suy luận và luồng train | 20 phút |
 | 6 | [kien-truc/quyet-dinh.md](kien-truc/quyet-dinh.md) | Vì sao code như hiện tại, khi nào nên xem lại | 15 phút |

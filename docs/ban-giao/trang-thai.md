@@ -11,10 +11,9 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 - Model tự viết khớp Ultralytics: đầu ra lệch 6,1e-05 khi nạp `yolov8n.pt`; loss sai khác 0,0.
 - Model tốt nhất hiện có: `runs/bien-bao/best.pt`, dataset biển báo 4 class, **mAP50-95 0.705, mAP50 0.836** trên
   175 ảnh val (12/10, 100 epoch trên máy ảo GCP, **chưa có** EMA + mosaic).
-- **Chưa commit:** mosaic + EMA (bước 16), `webcam.py`, bài chấm 16 trong `check.py`, cập nhật `docs/train/01`, `05`,
-  `README`, báo cáo `.docx`, và bộ tài liệu bàn giao này. Commit cuối trên `main` là `c06cde6` (12/10).
-- Làm tiếp được ngay: commit phần trên; thêm resume cho `train.py`; train lại `bien-bao` có EMA + mosaic để so với
-  0.705 (van-de-mo #1).
+- Mọi thứ đã commit và push (`0fa7f9d`, 15/10). `best.pt` + `train.log` nằm ở
+  [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0).
+- Làm tiếp được ngay: thêm resume cho `train.py`; train lại `bien-bao` có EMA + mosaic để so với 0.705 (van-de-mo #1).
 
 ## Theo plan
 
@@ -31,13 +30,13 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 | 13 | Loss | Xong (11/10) | Sai khác 0,0 ở box, cls, dfl |
 | 14 | `train.py` | Xong (11/10) | Học thuộc 4 ảnh coco8 từ số 0: mAP50-95 0.995 ở epoch 200 |
 | 15 | mAP | Xong (11/10) | `yolov8n.pt` trên coco8 val: 0.600 (Ultralytics 0.608) |
-| 16 | Mosaic + EMA | Code xong, **chưa commit, chưa đo trên dữ liệu thật** (12/10) | Học thuộc với EMA vẫn đạt 0.995. Cần train lại `bien-bao` |
+| 16 | Mosaic + EMA | Code xong, **chưa đo trên dữ liệu thật** (12/10) | Học thuộc với EMA vẫn đạt 0.995. Cần train lại `bien-bao` |
 | 2b | `kaggle_data.py` | Xong (11/10) | Hỗ trợ YOLO `.txt` và Pascal VOC; chưa hỗ trợ COCO JSON, CSV, đa giác |
 | 2b | Fine-tune biển báo trên GCP | Xong (12/10) | 100 epoch, ~100 s/epoch, VM đã xoá |
 | 2b | `predict.py` | Xong (11/10) | |
-| 2b | `webcam.py` | Code xong, **chưa có người xem cửa sổ camera chạy thật**, chưa commit (12/10) | Đã kiểm phần xử lý trên `bus.jpg` và đọc được khung hình |
-| 2b | Báo cáo `docs/bao-cao-yolov8n.docx` | Xong (12/10), chưa commit | Chưa xem giao diện trong Word |
-| — | Tài liệu bàn giao `docs/` | Xong bản đầu (15/10), chưa commit | |
+| 2b | `webcam.py` | Code xong, **chưa có người xem cửa sổ camera chạy thật** (12/10) | Đã kiểm phần xử lý trên `bus.jpg` và đọc được khung hình |
+| 2b | Báo cáo `docs/bao-cao-yolov8n.docx` | Xong (12/10) | Chưa xem giao diện trong Word |
+| — | Tài liệu bàn giao `docs/` | Xong bản đầu (15/10) | |
 | 6.1 | Resume từ `last.pt` | Chưa làm | Cần trước khi chạy máy ảo spot |
 | 6.2 | HSV, xoay / co giãn | Chưa làm | |
 | 3 | Port C++ / LibTorch | Chưa làm | Chờ học xong C1–C3 |

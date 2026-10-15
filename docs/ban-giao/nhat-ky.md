@@ -11,7 +11,10 @@ Mẫu: `## dd/mm/yyyy`, rồi các gạch đầu dòng: Đã làm / Kết quả 
   buổi trước), `ban-giao/`, `kien-truc/`, `huong-dan/`. Bộ lý thuyết `docs/train/` giữ nguyên.
 - Vấn đề: trong terminal của trợ lý AI, Windows chặn `torch_python.dll` của `venv` ("An Application Control policy has
   blocked this file"), nên buổi này không chạy lại được `check.py`. Không ảnh hưởng terminal của người dùng.
-- Tiếp theo: commit toàn bộ phần chưa commit (xem `trang-thai.md`).
+- Commit `0fa7f9d` (mosaic + EMA, `webcam.py`, tài liệu bàn giao, báo cáo) và push lên `main`. Repo vẫn public.
+- Tạo [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0) để chứa `best.pt` (12 MB,
+  không nằm trong git) và `train.log`.
+- Tiếp theo: bàn giao cho leader theo `checklist-ban-giao.md` (chọn thêm collaborator hay transfer repo).
 
 ## 12/10/2026
 

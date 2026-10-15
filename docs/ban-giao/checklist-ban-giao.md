@@ -10,7 +10,7 @@ nguyên, không để đến lúc bàn giao.
 | Repo git (remote) | `github.com/namnd020304/clone-python-yolo` | namnd020304 | Nhánh `main` |
 | Trọng số gốc | `yolov8n.pt` (Ultralytics release v8.3.0) | Ultralytics | Không commit (`*.pt` trong `.gitignore`); tải lại theo `huong-dan/cai-dat-moi-truong.md` |
 | Trọng số COCO đổi định dạng | `yolov8n_mine.pt` | Chủ repo | Tạo từ `yolov8n.pt` bằng `train.load_pretrained`; `webcam.py` dùng mặc định |
-| Model biển báo | `runs/bien-bao/best.pt` (+ `train.log`) | Chủ repo | Chỉ có trên máy; không commit. Cần lưu thêm ở chỗ khác nếu muốn giữ |
+| Model biển báo | `runs/bien-bao/best.pt` (+ `train.log`) | Chủ repo | Không commit vào git. Bản tải về: [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0), SHA-256 `7fbdc02e…a0ca4ca` |
 | Dataset | `datasets/coco8`, `datasets/bien-bao` | Ultralytics / Kaggle | Tải lại được bằng lệnh, không cần lưu |
 | Project GCP | Project dùng thử (free trial) của chủ repo | Chủ repo | VM `yolo-train` **đã xoá** 12/10; không còn tài nguyên tính tiền |
 | Tài liệu Docs giai đoạn 1 | "Tự dựng lại YOLOv8n từ số 0" trên claude.ai | Chủ repo | Bản gốc trên claude.ai; nội dung chính đã có trong `README.md` và `ke-hoach-hoc.md` |
@@ -28,7 +28,7 @@ Không có secret nào trong repo. Nếu dùng dataset Kaggle cần đăng nhậ
 - [ ] `kien-truc/quyet-dinh.md` có mọi thay đổi so với plan
 - [ ] `huong-dan/van-hanh.md` đủ lệnh và tham số
 - [ ] Bảng kết quả đo có số thật, kèm ngày
-- [ ] `runs/bien-bao/best.pt` được gửi cho người tiếp nhận (không nằm trong git)
+- [ ] `runs/bien-bao/best.pt` có trong Release v1.0 (không nằm trong git)
 
 ## 3. Người tiếp nhận tự kiểm chứng (chỉ đọc tài liệu, không hỏi)
 
