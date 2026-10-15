@@ -10,11 +10,11 @@ Bộ tài liệu này giải thích từng mảnh của quá trình đó, theo �
 
 | File | Học gì | Code | Chấm |
 |---|---|---|---|
-| [01-du-lieu.md](01-du-lieu.md) | Định dạng nhãn YOLO, đổi nhãn theo letterbox, augmentation, gom batch | [yolo/dataset.py](../../yolo/dataset.py) | `check.py 10` |
+| [01-du-lieu.md](01-du-lieu.md) | Định dạng nhãn YOLO, đổi nhãn theo letterbox, augmentation (có mosaic), gom batch | [yolo/dataset.py](../../yolo/dataset.py) | `check.py 10`, `16` |
 | [02-dau-ra-tho-cua-head.md](02-dau-ra-tho-cua-head.md) | Vì sao lúc train Head trả logit chứ không trả box; anchor, stride; khởi tạo bias | [yolo/head.py](../../yolo/head.py) | `check.py 11` |
 | [03-gan-nhan-tal.md](03-gan-nhan-tal.md) | Bài toán "ô nào học vật nào"; Task-Aligned Assigner | [yolo/assigner.py](../../yolo/assigner.py) | `check.py 12` |
 | [04-ham-loss.md](04-ham-loss.md) | BCE cho class, CIoU cho box, DFL cho phân bố khoảng cách | [yolo/loss.py](../../yolo/loss.py) | `check.py 13` |
-| [05-vong-lap-train.md](05-vong-lap-train.md) | Gradient, AdamW, learning rate, warmup, fine-tune và train từ đầu | [train.py](../../train.py) | `check.py 14` |
+| [05-vong-lap-train.md](05-vong-lap-train.md) | Gradient, AdamW, learning rate, warmup, EMA, fine-tune và train từ đầu | [train.py](../../train.py), [yolo/ema.py](../../yolo/ema.py) | `check.py 14`, `16` |
 | [06-danh-gia-map.md](06-danh-gia-map.md) | Precision, recall, AP, mAP50, mAP50-95 | [yolo/metrics.py](../../yolo/metrics.py) | `check.py 15` |
 | [07-du-lieu-that-va-cloud.md](07-du-lieu-that-va-cloud.md) | Lấy dataset từ Kaggle, train qua đêm trên máy ảo GCP | [kaggle_data.py](../../kaggle_data.py) | |
 
@@ -25,7 +25,7 @@ nhất.
 
 ```
  ảnh + file nhãn .txt
-        │  01: letterbox ảnh, đổi nhãn sang pixel 640x640, lật ngẫu nhiên, gom batch
+        │  01: letterbox hoặc mosaic, đổi nhãn sang pixel 640x640, lật ngẫu nhiên, gom batch
         ▼
  imgs (B, 3, 640, 640)            gt_labels (B, M, 1), gt_bboxes (B, M, 4), mask_gt (B, M, 1)
         │                                              │
@@ -43,9 +43,9 @@ nhất.
  04: loss = 7.5 × (1 − CIoU) + 0.5 × BCE + 1.5 × DFL
         │
         ▼
- 05: loss.backward() → gradient → AdamW chỉnh trọng số (lr theo warmup + cosine)
+ 05: loss.backward() → gradient → AdamW chỉnh trọng số (lr theo warmup + cosine) → cập nhật EMA
         │
-        └──► lặp lại; cứ vài epoch thì 06: đo mAP trên tập val, lưu best.pt
+        └──► lặp lại; cứ vài epoch thì 06: đo mAP của bản EMA trên tập val, lưu best.pt
 ```
 
 ## Ba câu hỏi xuyên suốt

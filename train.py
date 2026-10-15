@@ -6,7 +6,8 @@
 
 --data là thư mục có images/<split> và labels/<split>; để "coco8" thì tự tải về datasets/coco8.
 Nếu thư mục có classes.txt (mỗi dòng một tên class) thì số class và tên class lấy từ đó, không cần --nc.
-Checkpoint lưu vào --out (last.pt, best.pt); xem kết quả bằng predict.py.
+Checkpoint lưu vào --out (last.pt, best.pt) là trọng số EMA; xem kết quả bằng predict.py.
+Augmentation khi train: mosaic (tắt ở --close-mosaic epoch cuối), lật ngang, đổi độ sáng; --no-augment tắt hết.
 """
 import argparse
 import sys
@@ -18,6 +19,7 @@ import torch
 from torch import nn
 
 from yolo.dataset import COCO_NAMES, YoloDataset, collate, download_coco8
+from yolo.ema import ModelEMA
 from yolo.loss import DetectionLoss
 from yolo.metrics import evaluate
 from yolo.model import YOLOv8n
@@ -71,6 +73,9 @@ def main():
     ap.add_argument("--lr", type=float, default=0.0, help="0 = tự chọn 0.002 * 5 / (4 + nc) như Ultralytics")
     ap.add_argument("--weight-decay", type=float, default=5e-4)
     ap.add_argument("--no-augment", action="store_true")
+    ap.add_argument("--mosaic", type=float, default=1.0, help="xác suất dùng mosaic cho mỗi ảnh train")
+    ap.add_argument("--close-mosaic", type=int, default=10, help="tắt mosaic ở N epoch cuối")
+    ap.add_argument("--no-ema", action="store_true")
     ap.add_argument("--eval-every", type=int, default=10)
     ap.add_argument("--workers", type=int, default=0)
     ap.add_argument("--out", default="runs/train")
@@ -92,7 +97,8 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    train_set = YoloDataset(data / "images" / args.train_split, args.size, augment=not args.no_augment)
+    train_set = YoloDataset(data / "images" / args.train_split, args.size, augment=not args.no_augment,
+                            mosaic=args.mosaic)
     val_set = YoloDataset(data / "images" / args.val_split, args.size)
     train_loader = torch.utils.data.DataLoader(train_set, args.batch, shuffle=True, collate_fn=collate,
                                                num_workers=args.workers, drop_last=False)
@@ -101,6 +107,7 @@ def main():
     model = YOLOv8n(args.nc).to(device)
     if args.weights:
         load_pretrained(model, args.weights)
+    ema = None if args.no_ema else ModelEMA(model)
     criterion = DetectionLoss(num_classes=args.nc)
     optimizer = build_optimizer(model, args.lr, args.weight_decay)
 
@@ -115,6 +122,9 @@ def main():
     best, it = -1.0, 0
     for epoch in range(1, args.epochs + 1):
         model.train()
+        if train_set.mosaic and epoch > args.epochs - args.close_mosaic:
+            train_set.mosaic = 0.0
+            print(f"Tắt mosaic từ epoch {epoch}")
         t0, sums = time.time(), torch.zeros(3)
         for imgs, gt_labels, gt_bboxes, mask in train_loader:
             for g in optimizer.param_groups:
@@ -125,6 +135,8 @@ def main():
             (loss.sum() * len(imgs)).backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
             optimizer.step()
+            if ema:
+                ema.update(model)
             sums += loss.detach().cpu()
             it += 1
         box, cls, dfl = (sums / len(train_loader)).tolist()
@@ -132,9 +144,10 @@ def main():
                 f"lr {optimizer.param_groups[0]['lr']:.5f}  {time.time() - t0:.1f}s")
 
         if epoch % args.eval_every == 0 or epoch == args.epochs:
-            m50, m = evaluate(model, val_loader)
+            final = ema.ema if ema else model
+            m50, m = evaluate(final, val_loader)
             line += f"  |  mAP50 {m50:.3f}  mAP50-95 {m:.3f}"
-            ckpt = {"model": model.state_dict(), "epoch": epoch, "nc": args.nc, "names": names, "map": m}
+            ckpt = {"model": final.state_dict(), "epoch": epoch, "nc": args.nc, "names": names, "map": m}
             torch.save(ckpt, out / "last.pt")
             if m > best:
                 best = m

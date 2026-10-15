@@ -84,11 +84,34 @@ lr
 Lúc `train()`, BatchNorm chuẩn hoá bằng trung bình, phương sai **của batch hiện tại**, đồng thời cập nhật trung bình
 trượt (`momentum = 0.03`, tức mỗi batch đóng góp 3%). Lúc `eval()`, nó dùng trung bình trượt đó.
 
-Hệ quả thấy trong thí nghiệm train từ số 0: ở epoch 50 và 100, loss train đã thấp nhưng mAP đo ở chế độ eval vẫn
-**0.000**, rồi tới epoch 200 mới vọt lên 0.995. Một giải thích có thể (chưa kiểm chứng): trọng số đổi nhanh hơn trung
-bình trượt theo kịp, nên ở chế độ eval model chạy với thống kê "cũ". Ultralytics giảm hiện tượng này bằng **EMA**: giữ
-một bản sao trọng số là trung bình trượt của các bước gần đây, rồi đo và lưu bản đó. EMA chưa có trong repo này, là
-một cải tiến đáng làm.
+Hệ quả thấy trong thí nghiệm train từ số 0 (chưa có EMA): ở epoch 50 và 100, loss train đã thấp nhưng mAP đo ở chế độ
+eval vẫn **0.000**, rồi tới epoch 200 mới vọt lên 0.995. Một giải thích có thể (chưa kiểm chứng): trọng số đổi nhanh
+hơn trung bình trượt theo kịp, nên ở chế độ eval model chạy với thống kê "cũ".
+
+**Đã thử lại có EMA, hiện tượng vẫn y như cũ:** mAP = 0.000 ở epoch 50 và 100, 0.096 ở epoch 150, 0.990 ở epoch 200.
+Vậy giả thuyết BatchNorm ở trên không được ủng hộ, và EMA không phải thứ sửa được chuyện này. Nguyên nhân thật chưa
+được xác định. Một hướng khả dĩ: khi train từ đầu, box dự đoán mất nhiều epoch mới đạt IoU ≥ 0.5 với vật thật, nên
+dù loss đã giảm, chưa dự đoán nào được tính là đúng. Cần đo IoU trung bình của ô dương theo epoch mới kết luận được.
+
+## 5b. EMA: đo và lưu bản "trung bình" của model
+
+Code: [yolo/ema.py](../../yolo/ema.py). Chấm: `python check.py 16`.
+
+Sau mỗi bước, trọng số dao động quanh điểm tốt, vì mỗi batch kéo một hướng hơi khác. EMA giữ một **bản sao** model
+có trọng số là trung bình trượt của các bước gần đây:
+
+$$
+w_{\text{ema}} \leftarrow d \cdot w_{\text{ema}} + (1 - d) \cdot w, \qquad d = 0.9999 \cdot \left(1 - e^{-\text{bước} / 2000}\right)
+$$
+
+- `d` tăng dần từ 0 lên 0.9999. Lúc đầu model đổi nhanh, `d` nhỏ nên EMA bám sát; về sau EMA "nhớ" khoảng 10 nghìn
+  bước gần nhất. Ở bước 2000, `d ≈ 0.63`; ở bước 10000, `d ≈ 0.993`.
+- Running mean, running var của BatchNorm cũng được lấy trung bình y như vậy.
+- Gradient và optimizer **chỉ** tác động lên model chính. EMA chỉ "đi theo".
+- `train.py` đo mAP và lưu `best.pt` / `last.pt` bằng bản EMA. Tắt bằng `--no-ema`.
+
+Lấy trung bình nhiều điểm quanh đáy thường cho một điểm gần đáy hơn từng điểm riêng lẻ. Vì vậy mAP đo bằng EMA thường
+cao hơn và dao động ít hơn giữa các lần đo.
 
 ## 6. Train từ đầu và fine-tune
 

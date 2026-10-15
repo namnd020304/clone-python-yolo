@@ -264,10 +264,45 @@ def step15():
     expect(tp[0, 0] and not tp[0, 1], "IoU 0.54: đúng ở ngưỡng 0.5, sai ở ngưỡng 0.55")
 
 
-STEPS = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15]
+def step16():
+    import tempfile
+    from pathlib import Path
+    from PIL import Image
+    from yolo.dataset import YoloDataset
+    from yolo.ema import ModelEMA
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "images").mkdir()
+        (Path(d) / "labels").mkdir()
+        for k in range(4):
+            Image.new("RGB", (640, 480), (k * 60, 100, 100)).save(Path(d) / "images" / f"{k}.jpg")
+            (Path(d) / "labels" / f"{k}.txt").write_text("1 0.5 0.5 0.4 0.4\n")
+        ds = YoloDataset(Path(d) / "images", augment=True, mosaic=1.0)
+        torch.manual_seed(0)
+        for _ in range(5):
+            img, lab = ds[0]
+            expect_shape(img, (3, 640, 640), "mosaic: ảnh")
+            expect(bool(((lab[:, 1:] >= 0) & (lab[:, 1:] <= 640)).all()), "mosaic: box phải nằm trong ảnh 640")
+            expect(bool((lab[:, 3] - lab[:, 1] > 2).all() and (lab[:, 4] - lab[:, 2] > 2).all()),
+                   "mosaic: box quá nhỏ (< 2 px) phải bị bỏ")
+            expect(len(lab) <= 4, f"mosaic: 4 ảnh mỗi ảnh 1 box mà ra {len(lab)} box")
+
+    import math
+    model = torch.nn.Linear(2, 1)
+    w0 = model.weight.detach().clone()
+    ema = ModelEMA(model)
+    with torch.no_grad():
+        model.weight.fill_(1.0)
+    ema.update(model)
+    d = 0.9999 * (1 - math.exp(-1 / 2000))
+    expect(torch.allclose(ema.ema.weight, d * w0 + (1 - d) * 1.0), "EMA: sai công thức ema = d * ema + (1 - d) * model")
+    expect(not ema.ema.weight.requires_grad, "EMA: bản sao không được có gradient")
+
+
+STEPS = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15,
+         step16]
 NAMES = ["Conv", "Bottleneck + C2f", "SPPF", "Backbone", "Neck", "Head + DFL", "YOLOv8n", "letterbox",
          "IoU + NMS + postprocess", "dataset + collate", "Head trả đầu ra thô khi train", "TAL assigner (so Ultralytics)",
-         "loss (so Ultralytics)", "train vài bước, loss giảm", "mAP"]
+         "loss (so Ultralytics)", "train vài bước, loss giảm", "mAP", "mosaic + EMA"]
 
 
 def main():

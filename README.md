@@ -3,13 +3,15 @@
 **Mục tiêu:** viết lại YOLOv8n (bản nhỏ nhất) bằng PyTorch, từng khối một, đến khi model của bạn nhận ảnh
 `(1, 3, 640, 640)` và trả ra `(1, 84, 8400)` giống bản gốc. Sau đó (khi đã học xong C1–C3) viết lại bằng C++ / LibTorch.
 
+> **Người mới tiếp nhận:** đọc [docs/README.md](docs/README.md) trước. Ở đó có thứ tự đọc, plan học, trạng thái hiện
+> tại, cách cài đặt và các lệnh.
+
 **Cách làm:** mỗi file trong `yolo/` là một bước. Hàm/lớp đang `raise NotImplementedError`; bạn viết phần thân rồi
-chạy chương trình chấm:
+chạy chương trình chấm (cài môi trường: [docs/huong-dan/cai-dat-moi-truong.md](docs/huong-dan/cai-dat-moi-truong.md)):
 
 ```powershell
-cd D:\Computer-vision\learncpp\clone-yolo
-D:\Python310\python.exe check.py          # chấm tất cả bước
-D:\Python310\python.exe check.py 1        # chỉ chấm bước 1
+python check.py          # chấm tất cả bước
+python check.py 1        # chỉ chấm bước 1
 ```
 
 Chương trình chấm chỉ kiểm tra **shape** và vài con số (số tham số, 8400...). Bước nào chưa viết sẽ báo `chưa làm`.
@@ -31,7 +33,7 @@ Chương trình chấm chỉ kiểm tra **shape** và vài con số (số tham s
 **Sau bước 9 (tuỳ chọn, khó):** nạp trọng số `yolov8n.pt` gốc vào model của bạn để chạy ra box thật trên ảnh; viết
 loss (TAL assigner, CIoU, DFL) và train trên dataset nhỏ; port sang LibTorch.
 
-**Giai đoạn 2 (bước 10–15, đã làm):** train model tự viết. Lý thuyết từng bước ở [docs/train/](docs/train/README.md):
+**Giai đoạn 2 (bước 10–16, đã làm):** train model tự viết. Lý thuyết từng bước ở [docs/train/](docs/train/README.md):
 dữ liệu, đầu ra thô của head, gán nhãn TAL, loss, vòng lặp train, mAP, dataset Kaggle và train trên cloud.
 
 ## Con số cần nhớ (YOLOv8n, ảnh 640)

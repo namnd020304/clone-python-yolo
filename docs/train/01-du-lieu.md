@@ -52,18 +52,43 @@ Từ đây trở đi, mọi box thật (gọi là **gt**, ground truth) đều �
 Với ít dữ liệu, model dễ **học thuộc** (overfit): nhớ đúng từng ảnh train thay vì học đặc điểm chung. Augmentation
 biến đổi ảnh ngẫu nhiên mỗi lần đọc, nên model không bao giờ thấy hai lần cùng một ảnh y hệt.
 
-Repo này làm hai phép đơn giản (chỉ khi train, `augment=True`):
+Repo này làm ba phép (chỉ khi train, `augment=True`):
 
 | Phép | Ảnh | Nhãn |
 |---|---|---|
+| Mosaic, xác suất `--mosaic` (mặc định 1.0) | Ghép 4 ảnh, co giãn ×0.5–1.5, cắt về 640 | Dịch theo chỗ dán, nhân hệ số co giãn, cắt theo khung |
 | Lật ngang, xác suất 0.5 | `x.flip(-1)` | `x1_mới = 640 − x2_cũ`, `x2_mới = 640 − x1_cũ` |
 | Đổi độ sáng ×0.75 … ×1.25 | nhân rồi kẹp về 0..1 | không đổi |
 
 Để ý cách đổi nhãn khi lật: cạnh phải cũ thành cạnh trái mới, nên phải **đổi chỗ** x1 và x2. Nếu chỉ lấy
 `640 − x1` thì được box có x1 > x2, tức box âm.
 
-Ultralytics còn dùng nhiều phép mạnh hơn: **mosaic** (ghép 4 ảnh thành 1), co giãn, xoay, đổi màu HSV, mixup. Đó là
-một trong những lý do model của họ tổng quát tốt. Đây là chỗ đáng làm tiếp khi muốn tăng mAP.
+### Mosaic
+
+Hàm `load_mosaic` trong [yolo/dataset.py](../../yolo/dataset.py):
+
+```
+khung 1280 x 1280, nền xám 114
+┌─────────┬─────────┐
+│  ảnh i  │ ngẫu nhiên│     4 ảnh (mỗi ảnh co về cạnh dài 640) chạm góc vào tâm ●,
+├─────────●─────────┤     tâm chọn ngẫu nhiên trong [320, 960]
+│ngẫu nhiên│ngẫu nhiên│
+└─────────┴─────────┘
+→ lấy cửa sổ cỡ 640 / r quanh giữa khung (r ngẫu nhiên 0.5–1.5, dịch ±10%), co về 640 x 640
+```
+
+- **r < 1** (cửa sổ to hơn 640): mọi vật bị thu nhỏ. Model được luyện nhiều với **vật nhỏ**, đúng điểm yếu đã thấy ở
+  dataset biển báo (bỏ sót biển 7 × 9 px).
+- **r > 1**: vật được phóng to, có khi bị cắt mất một phần.
+- Một ảnh chứa vật của 4 ảnh, với nền và bối cảnh lạ: model khó học thuộc hơn.
+
+Nhãn phải đi qua đúng các phép đó: cộng độ dời chỗ dán, cắt theo phần ảnh thực sự được dán, trừ góc cửa sổ, nhân r,
+cắt về [0, 640]. Box bị cắt gần hết thì bỏ: cạnh còn < 2 px, hoặc còn < 10% diện tích.
+
+Ảnh mosaic không giống ảnh thật lúc dùng. Vì vậy `train.py` **tắt mosaic ở 10 epoch cuối** (`--close-mosaic 10`) để
+model quen lại với ảnh letterbox bình thường. Ultralytics cũng làm vậy.
+
+Ultralytics còn dùng thêm xoay, đổi màu HSV, mixup. Đó là chỗ có thể làm tiếp.
 
 Phép biến đổi nào cũng phải biến đổi nhãn theo đúng cách. Phép nào chỉ đổi màu thì nhãn giữ nguyên; phép nào đổi hình
 học (lật, co, xoay, cắt) thì nhãn phải đổi theo.
