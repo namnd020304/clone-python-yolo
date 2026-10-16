@@ -26,6 +26,7 @@ mới biết, hãy bổ sung vào tài liệu tương ứng sau khi đã hỏi �
 | [ke-hoach-hoc.md](ke-hoach-hoc.md) | Plan học: mục tiêu, 3 giai đoạn, bước 1–16 và phần còn lại, học song song C++ | Khi đổi lộ trình. Là căn cứ gốc |
 | [huong-dan/cai-dat-moi-truong.md](huong-dan/cai-dat-moi-truong.md) | Từ máy trắng đến chạy được `check.py`, lỗi thường gặp | Khi thêm thư viện, công cụ |
 | [huong-dan/van-hanh.md](huong-dan/van-hanh.md) | Các lệnh: chấm, nạp trọng số, lấy dữ liệu, train, dự đoán, camera, train trên GCP | Khi thêm/đổi lệnh hoặc tham số |
+| [huong-dan/quy-trinh-train.md](huong-dan/quy-trinh-train.md) | Checklist một lần train đầy đủ: bài toán → dữ liệu → chia tập → sanity check → train → đánh giá → phát hành; khoảng trống công cụ | Khi đổi quy trình train hoặc lấp một khoảng trống |
 | [huong-dan/quy-trinh-lam-viec.md](huong-dan/quy-trinh-lam-viec.md) | Thế nào là "xong", quy tắc code, git, làm với AI | Khi đổi quy ước |
 | [kien-truc/tong-quan-kien-truc.md](kien-truc/tong-quan-kien-truc.md) | Module, shape tensor qua từng khâu, nơi lưu file | Khi thêm module hoặc đổi luồng |
 | [kien-truc/quyet-dinh.md](kien-truc/quyet-dinh.md) | Nhật ký quyết định (QĐ-01…): bối cảnh, lựa chọn, khi nào xem lại | Mỗi khi chốt/đổi một quyết định |
