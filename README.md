@@ -8,15 +8,19 @@
 
 ## Kết quả
 
-Model tự viết, fine-tune 100 epoch trên dataset biển báo (Kaggle `andrewmvd/road-sign-detection`, 4 class), chạy trên
-3 ảnh của tập val (model chưa thấy khi train). Trên cả 175 ảnh val: **mAP50 0.836, mAP50-95 0.705**.
+**Hướng hiện tại (từ 16/10/2026):** train model tự viết **từ số 0** (trọng số ngẫu nhiên, không fine-tune) trên COCO
+2017, 80 class, bằng GPU máy dev (~14,5 phút/epoch). Chưa có kết quả. Mốc để so: `yolov8n.pt` gốc đo bằng code của
+repo trên val2017 được mAP50-95 0.347. Cách train: [docs/ban-giao/quy-trinh-train.md](docs/ban-giao/quy-trinh-train.md).
+
+**Kết quả cũ (lưu trữ, không phát triển tiếp):** fine-tune từ `yolov8n.pt` 100 epoch trên dataset biển báo (Kaggle
+`andrewmvd/road-sign-detection`, 4 class), chạy trên 3 ảnh của tập val. Trên cả 175 ảnh val: mAP50 0.836, mAP50-95 0.705.
 
 | `road160` | `road108` | `road239` |
 |:---:|:---:|:---:|
 | <img src="docs/images/bien-bao-road160.jpg" height="300" alt="stop 0.98 và crosswalk 0.97 trên ảnh road160"> | <img src="docs/images/bien-bao-road108.jpg" height="300" alt="speedlimit 0.89 trên ảnh road108"> | <img src="docs/images/bien-bao-road239.jpg" height="300" alt="speedlimit 0.53 trên ảnh road239"> |
 | `stop 0.98`, `crosswalk 0.97`; bỏ sót một biển crosswalk ~7×9 px ở xa | `speedlimit 0.89`, biển nhỏ 13×12 px | `speedlimit 0.53`, đúng nhưng điểm thấp vì biển rất nhỏ |
 
-Vật nhỏ là điểm yếu chính của model hiện tại. Trọng số ở
+Vật nhỏ là điểm yếu chính của model này. Trọng số ở
 [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0); tạo lại ảnh bằng
 `python predict.py best.pt datasets/bien-bao/images/val/road160.png` (đổi tên ảnh cho 2 ảnh còn lại).
 
@@ -48,7 +52,7 @@ Chương trình chấm chỉ kiểm tra **shape** và vài con số (số tham s
 loss (TAL assigner, CIoU, DFL) và train trên dataset nhỏ; port sang LibTorch.
 
 **Giai đoạn 2 (bước 10–16, đã làm):** train model tự viết. Lý thuyết từng bước ở [docs/train/](docs/train/README.md):
-dữ liệu, đầu ra thô của head, gán nhãn TAL, loss, vòng lặp train, mAP, dataset Kaggle và train trên cloud.
+dữ liệu, đầu ra thô của head, gán nhãn TAL, loss, vòng lặp train, mAP, dữ liệu COCO và train trên GPU.
 
 ## Con số cần nhớ (YOLOv8n, ảnh 640)
 

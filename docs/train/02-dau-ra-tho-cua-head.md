@@ -69,9 +69,12 @@ Vì sao quan trọng? Phần lớn trong 8400 ô là **nền** (không có vật
 cho mọi class: hàng trăm nghìn dự đoán sai, loss khổng lồ, gradient đầu tiên đẩy model lung tung. Bắt đầu từ "gần như
 không có gì" thì model chỉ cần học chỗ nào *có* vật.
 
-Bias này chỉ có tác dụng khi train từ đầu. Khi nạp `yolov8n.pt`, trọng số đã học sẽ đè lên.
+Bias này chỉ có tác dụng khi train từ đầu, đúng cách repo đang train COCO (QĐ-10). Khi nạp `yolov8n.pt`, trọng số đã
+học sẽ đè lên.
 
 ## 5. Vì sao nhánh class "không nạp được" khi đổi số class
+
+Mục này giải thích thí nghiệm cũ (fine-tune biển báo, trước QĐ-10); train COCO từ số 0 không nạp tensor nào.
 
 Khi fine-tune với 4 class, log ghi `Nạp 319/355 tensor`. Lý do: số kênh nhánh class là
 `max(64, min(nc, 100))`. Với 80 class là 80 kênh, với 4 class là 64 kênh. Shape khác nên cả 3 nhánh class (mỗi nhánh 2

@@ -1,0 +1,31 @@
+[project]
+name = "clnyolo"
+version = "0.1.0"
+description = "Train an object detection model on COCO with CUDA"
+# 3.12 has the best wheel coverage for torch on Windows
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # model, train.py, predict.py, check.py
+    "torch>=2.7",
+    "torchvision>=0.22",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "tqdm>=4.66",
+    "pyyaml>=6.0",
+    # load_weights.py, check.py steps 12-13, fine-tuning from yolov8n.pt (train.py --weights)
+    "ultralytics>=8.3",
+    # webcam.py
+    "opencv-python>=4.10",
+    # kaggle_data.py
+    "kagglehub>=0.3",
+]
+
+# RTX 50-series (Blackwell, sm_120) needs CUDA >= 12.8 builds
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+torchvision = [{ index = "pytorch-cu128" }]

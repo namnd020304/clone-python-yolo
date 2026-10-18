@@ -58,9 +58,10 @@ Lý thuyết chi tiết từng bước: [train/](train/README.md).
 
 | Việc | File | Kiểm chứng |
 |---|---|---|
-| Lấy dataset từ Kaggle, đổi VOC → YOLO, chia train/val | `kaggle_data.py` | Kiểm tay vài box sau khi đổi |
-| Fine-tune trên dataset riêng | `train.py --weights yolov8n.pt` | mAP trên tập val chưa từng thấy |
-| Train dài trên máy ảo GCP (CPU, free trial) | xem `huong-dan/van-hanh.md` | Log, `best.pt` tải về, VM đã xoá |
+| Lấy dataset từ Kaggle, đổi VOC → YOLO, chia train/val | `kaggle_data.py` | Đã làm, **bỏ từ 16/10** (QĐ-10) |
+| Fine-tune trên dataset riêng | `train.py --weights yolov8n.pt` | Đã làm, **bỏ từ 16/10** (QĐ-10) |
+| Train dài trên máy ảo GCP (CPU, free trial) | xem `huong-dan/van-hanh.md` | Đã làm; thay bằng GPU máy dev (QĐ-10) |
+| **Train từ số 0 trên COCO 2017, GPU máy dev** | `train.py` không `--weights`, xem `ban-giao/quy-trinh-train.md` | mAP50-95 trên val2017, so với mốc 0.347 của `yolov8n.pt` |
 | Dự đoán một ảnh | `predict.py` | Box đúng vật trên ảnh val |
 | Nhận diện qua camera | `webcam.py` | Người chạy tự xem cửa sổ camera |
 
@@ -68,10 +69,25 @@ Lý thuyết chi tiết từng bước: [train/](train/README.md).
 
 Theo thứ tự nên làm:
 
-1. **Đo EMA + mosaic trên dataset thật:** train lại `bien-bao` rồi so với mAP50-95 0.705 (bản chưa có EMA + mosaic).
-   Nên thêm **resume** (train tiếp từ `last.pt`) trước, để chạy máy ảo an toàn.
+0. **An toàn cho job dài (train COCO: ~14,5 phút/epoch trên GPU máy dev, ~4,7 giờ/epoch trên GCP CPU):**
+   - **Checkpoint giữa epoch:** ghi `last.pt` sau mỗi khoảng 2000 vòng lặp (thêm `--save-every 2000`), không chỉ ở
+     cuối epoch. Checkpoint lưu thêm vị trí trong epoch để `--resume` chạy tiếp từ giữa epoch. Trên GPU máy dev một
+     epoch chỉ ~15 phút nên việc này bớt gấp; vẫn cần nếu train lại trên máy chậm.
+     Kiểm chứng: trên coco8, dừng giữa epoch rồi `--resume`; số vòng, lr và loss nối tiếp đúng, không
+     nhảy.
+   - **Giới hạn số box khi đo mAP giống Ultralytics:** `max_nms = 30000` (chỉ đưa tối đa 30000 box điểm cao nhất
+     vào NMS), `max_det = 300` (giữ tối đa 300 box sau NMS mỗi ảnh). Thêm thành tham số của `postprocess` / `evaluate`.
+     Kiểm chứng: mAP của `yolov8n.pt` trên coco8 val không đổi (0.600); ghi thời gian đo val2017 vào nhật ký.
+     Lưu ý: ảnh 640 chỉ có 8400 ô, mỗi ô một class, nên `max_nms = 30000` không cắt được box nào. Muốn đo nhanh hơn
+     thật thì phải hạ ngưỡng này (vd 3000) hoặc dùng NMS dạng tensor.
+   - Áp dụng được cho job COCO đang chạy: đợi hết một epoch, dừng, rồi `--resume` bằng code mới. Job khi đó cũng
+     chuyển sang `load_mosaic` bản mới; ghi điều này vào nhật ký.
+
+1. **Train COCO từ số 0, 30 epoch trên GPU máy dev** (QĐ-10), lệnh ở `ban-giao/quy-trinh-train.md` mục 3.2. So với
+   job GCP cùng cấu hình và mốc 0.347. Từ kết quả này quyết có train dài hơn không (van-de-mo #8). Biển báo đã bỏ.
 2. **Bổ sung augmentation còn thiếu so với Ultralytics:** đổi màu HSV, xoay / co giãn ngẫu nhiên.
-3. **Tuỳ chọn:** AMP (số thực 16-bit) khi có GPU; mAP cho phép một box nhiều class giống cách Ultralytics đo.
+3. **Tuỳ chọn:** AMP (số thực 16-bit), giờ đã có GPU; tăng tốc tiến trình chính (TAL, EMA) vì đó có thể là nút
+   thắt hiện tại (file train/07 mục 4); mAP cho phép một box nhiều class giống cách Ultralytics đo.
 4. **Giai đoạn 3: port sang C++ / LibTorch** (sau khi học xong C1–C3):
    - Xuất `best.pt` sang TorchScript để C++ đọc.
    - Viết lại letterbox, postprocess, NMS bằng C++; so kết quả với bản Python trên cùng ảnh.

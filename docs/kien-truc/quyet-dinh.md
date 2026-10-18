@@ -75,7 +75,7 @@ Mẫu cho quyết định mới:
 
 ## QĐ-08. Train dài trên máy ảo GCP chỉ CPU
 
-- Ngày: 11/10/2026 · Trạng thái: Đang áp dụng
+- Ngày: 11/10/2026 · Trạng thái: Thay bằng QĐ-10 (job COCO chạy từ 15/10 vẫn để chạy hết)
 - Bối cảnh: CPU máy nhà ~2,5–3 phút/epoch với 702 ảnh; tài khoản GCP là free trial, không có hạn mức GPU.
 - Quyết định: VM `n2-standard-8` (8 vCPU), `us-central1-a`; gửi code (không gửi `venv`, `datasets`, `runs`), tải dataset
   ngay trên VM, chạy trong `tmux`, VM tự tắt khi train xong. Lấy kết quả xong thì **xoá VM** (ổ đĩa vẫn tính tiền khi
@@ -91,4 +91,17 @@ Mẫu cho quyết định mới:
   mAP và lưu checkpoint bằng bản EMA. Tắt bằng `--no-augment` / `--no-ema`.
 - Lý do: mosaic thu nhỏ vật trong ảnh ghép, nhắm đúng điểm yếu vật nhỏ; EMA cho mAP ổn định hơn. Cả hai là mặc định
   của Ultralytics.
-- Xem lại khi: có số đo trên `bien-bao`. Nếu không tăng mAP thì cân nhắc tắt mặc định với dataset nhỏ.
+- Xem lại khi: có số đo trên `bien-bao`. Nếu không tăng mAP thì cân nhắc tắt mặc định với dataset nhỏ. Từ 16/10 không
+  dùng `bien-bao` nữa (QĐ-10): đánh giá lại bằng kết quả train COCO.
+
+## QĐ-10. Chỉ train từ số 0 trên COCO 2017, trên GPU máy dev
+
+- Ngày: 16/10/2026 · Trạng thái: Đang áp dụng
+- Bối cảnh: mục tiêu là tự build model, không phải tinh chỉnh model người khác. Fine-tune từ `yolov8n.pt` (trên biển
+  báo hay COCO) chỉ chứng minh code nạp và chỉnh được trọng số có sẵn. Máy dev có RTX 5070 Ti 16 GB: ~14,5 phút/epoch
+  COCO, so với ~4,7 giờ/epoch trên VM GCP chỉ CPU.
+- Quyết định: chỉ train **từ số 0** (không `--weights`) trên COCO 2017 (`train2017` / `val2017`, 80 class), chạy trên
+  GPU máy dev. Bỏ dataset biển báo và fine-tune. `yolov8n.pt` chỉ còn dùng để đối chiếu (`load_weights.py`, `check.py`)
+  và làm mốc mAP (0.347 trên val2017 khi đo bằng code repo). Không mở thêm job COCO trên GCP CPU.
+- Lệnh chuẩn: xem [../ban-giao/quy-trinh-train.md](../ban-giao/quy-trinh-train.md) mục 3.2.
+- Xem lại khi: kết quả 30 epoch từ số 0 quá thấp, cần quyết train dài hơn hay đổi optimizer / lr.

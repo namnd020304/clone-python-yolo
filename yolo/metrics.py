@@ -72,13 +72,15 @@ def mean_ap(tp: torch.Tensor, conf: torch.Tensor, pred_cls: torch.Tensor, gt_cls
 @torch.no_grad()
 def evaluate(model: torch.nn.Module, loader, conf_thres: float = 0.001, iou_thres: float = 0.7) -> tuple[float, float]:
     """Chạy model trên cả loader (ngưỡng điểm rất thấp để có đủ đường precision-recall), trả về mAP50, mAP50-95."""
+    from tqdm import tqdm
+
     from .postprocess import postprocess
 
     was_training = model.training
     model.eval()
     device = next(model.parameters()).device
     tps, confs, pcls, gcls = [], [], [], []
-    for imgs, gt_labels, gt_bboxes, mask in loader:
+    for imgs, gt_labels, gt_bboxes, mask in tqdm(loader, desc="val", leave=False, dynamic_ncols=True):
         out = model(imgs.to(device)).cpu()
         for i in range(len(imgs)):
             pred = postprocess(out[i:i + 1], conf_thres, iou_thres)[:300]

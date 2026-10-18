@@ -3,7 +3,26 @@
 Mỗi buổi làm một mục, mới nhất ở trên. Chỉ ghi điều code không cho thấy: đã thử gì, số đo, vì sao đổi hướng. Không
 chép lại diff. Quyết định thiết kế thì ghi vào [../kien-truc/quyet-dinh.md](../kien-truc/quyet-dinh.md).
 
+Diễn biến riêng của các lần train (số đo theo epoch, sự cố khi chạy) ở [nhat-ky-train.md](nhat-ky-train.md).
+
 Mẫu: `## dd/mm/yyyy`, rồi các gạch đầu dòng: Đã làm / Kết quả / Vấn đề / Tiếp theo.
+
+## 16/10/2026
+
+- Thêm thanh tiến trình tqdm cho vòng train (loss trung bình và lr theo từng batch) và cho `evaluate`. tqdm ra stderr
+  nên `> train.log` vẫn chỉ chứa dòng tóm tắt epoch. `tqdm` thành thư viện bắt buộc.
+- Viết `ban-giao/quy-trinh-train.md`: quy trình train đầy đủ cho người tiếp nhận, kèm lệnh cho từng kịch bản.
+  Đã chạy thử: chạy thử 2 epoch coco8, đo lại mAP bằng `--epochs 0`, log sạch khi chỉ chuyển stdout.
+- Đổi hướng (QĐ-10): bỏ biển báo và fine-tune, chỉ train **từ số 0** trên COCO 2017, trên GPU máy dev. Viết lại
+  `quy-trinh-train.md` theo hướng này (bỏ mẫu `setup.sh` GCP).
+- Máy dev: RTX 5070 Ti 16 GB, 28 luồng CPU, môi trường `uv` ở `yolo-self-build/.venv` (torch 2.11.0+cu128). COCO đã
+  giải nén ở `yolo-self-build/data/coco` (118.287 / 5.000 ảnh, 117.266 / 4.952 file nhãn, nhãn 5 cột).
+- Đo tốc độ train COCO (epoch 1, ~3 phút mỗi lần): batch 16 với 0 / 8 / 16 worker: 1,05 / 8,51 / 8,30 batch/s; batch 32,
+  8 worker: 4,27 batch/s. Nút thắt là đọc ảnh + mosaic, không phải GPU. Chọn batch 16, 8 worker: ~14,5 phút/epoch.
+- `yolov8n.pt` gốc trên cả val2017 bằng `evaluate` của repo: mAP50 0.454, mAP50-95 0.347, 3,6 phút (van-de-mo #9).
+- Máy dev chưa có `gcloud` nên chưa xem được job `yolo-coco`.
+- Chuyển `pyproject.toml` và `uv.lock` từ `yolo-self-build/` vào repo (van-de-mo #10). Chưa chạy `uv sync` trong repo;
+  môi trường cũ ở `yolo-self-build/.venv` vẫn dùng được.
 
 ## 15/10/2026 (chiều): train COCO từ số 0 trên GCP
 

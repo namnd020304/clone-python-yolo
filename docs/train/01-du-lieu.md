@@ -20,8 +20,8 @@ Vì sao chia cho kích thước ảnh? Để nhãn không phụ thuộc độ ph
 Thư mục theo quy ước "đổi `images` thành `labels`":
 
 ```
-datasets/bien-bao/images/train/road0.png
-datasets/bien-bao/labels/train/road0.txt
+data/coco/images/train2017/000000000009.jpg
+data/coco/labels/train2017/000000000009.txt
 ```
 
 ## 2. Đổi nhãn theo letterbox
@@ -77,8 +77,8 @@ khung 1280 x 1280, nền xám 114
 → lấy cửa sổ cỡ 640 / r quanh giữa khung (r ngẫu nhiên 0.5–1.5, dịch ±10%), co về 640 x 640
 ```
 
-- **r < 1** (cửa sổ to hơn 640): mọi vật bị thu nhỏ. Model được luyện nhiều với **vật nhỏ**, đúng điểm yếu đã thấy ở
-  dataset biển báo (bỏ sót biển 7 × 9 px).
+- **r < 1** (cửa sổ to hơn 640): mọi vật bị thu nhỏ. Model được luyện nhiều với **vật nhỏ**, điểm yếu đã thấy ở
+  dataset biển báo trước đây (bỏ sót biển 7 × 9 px), và COCO có rất nhiều vật nhỏ.
 - **r > 1**: vật được phóng to, có khi bị cắt mất một phần.
 - Một ảnh chứa vật của 4 ảnh, với nền và bối cảnh lạ: model khó học thuộc hơn.
 

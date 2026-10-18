@@ -7,9 +7,9 @@ File này nói plan đã thành code thế nào. Lộ trình và lý do học th
 ## 1. Ranh giới
 
 ```
- Kaggle / coco8 ──► kaggle_data.py ──► datasets/<tên>/ ──► train.py ──► runs/<tên>/best.pt ──► predict.py / webcam.py
-                                                              ▲
- yolov8n.pt (Ultralytics) ──► load_weights.py (đối chiếu) ────┘ (điểm xuất phát khi fine-tune)
+ ../data/coco (COCO 2017) / datasets/coco8 ──► train.py (từ số 0) ──► runs/<tên>/best.pt ──► predict.py / webcam.py
+
+ yolov8n.pt (Ultralytics) ──► load_weights.py, check.py (chỉ đối chiếu, làm mốc mAP; không dùng làm điểm xuất phát)
 ```
 
 Gói `yolo/` là model và mọi thứ cần để train, **không phụ thuộc Ultralytics**. Ultralytics chỉ được dùng ở ba chỗ, đều
@@ -31,11 +31,11 @@ Gói `yolo/` là model và mọi thứ cần để train, **không phụ thuộc
 | `yolo/assigner.py` | `TaskAlignedAssigner` | 12 | Xong |
 | `yolo/loss.py` | `DetectionLoss`, `dfl_loss` | 13 | Xong |
 | `yolo/metrics.py` | `match_predictions`, `average_precision`, `mean_ap`, `evaluate` | 15 | Xong |
-| `yolo/ema.py` | `ModelEMA` | 16 | Xong (mosaic + EMA chưa đo trên dữ liệu thật) |
+| `yolo/ema.py` | `ModelEMA` | 16 | Xong (mosaic + EMA sẽ đánh giá qua train COCO) |
 | `train.py` | Vòng lặp train, `load_pretrained`, optimizer, lịch lr | 14 | Xong |
 | `check.py` | 16 bài chấm | — | Xong |
 | `load_weights.py` | Nạp `yolov8n.pt`, so đầu ra với Ultralytics, vẽ `result.jpg` | 9+ | Xong |
-| `kaggle_data.py` | Tải và chuyển dataset (YOLO / VOC) về cấu trúc chuẩn | 2b | Xong |
+| `kaggle_data.py` | Tải và chuyển dataset (YOLO / VOC) về cấu trúc chuẩn | 2b | Xong, không dùng nữa (QĐ-10) |
 | `predict.py` | Chạy checkpoint trên một ảnh | 2b | Xong |
 | `webcam.py` | Chạy theo thời gian thực từ camera | 2b | Code xong, chưa có người xem chạy thật |
 

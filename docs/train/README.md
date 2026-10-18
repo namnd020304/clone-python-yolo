@@ -14,9 +14,9 @@ Bộ tài liệu này giải thích từng mảnh của quá trình đó, theo �
 | [02-dau-ra-tho-cua-head.md](02-dau-ra-tho-cua-head.md) | Vì sao lúc train Head trả logit chứ không trả box; anchor, stride; khởi tạo bias | [yolo/head.py](../../yolo/head.py) | `check.py 11` |
 | [03-gan-nhan-tal.md](03-gan-nhan-tal.md) | Bài toán "ô nào học vật nào"; Task-Aligned Assigner | [yolo/assigner.py](../../yolo/assigner.py) | `check.py 12` |
 | [04-ham-loss.md](04-ham-loss.md) | BCE cho class, CIoU cho box, DFL cho phân bố khoảng cách | [yolo/loss.py](../../yolo/loss.py) | `check.py 13` |
-| [05-vong-lap-train.md](05-vong-lap-train.md) | Gradient, AdamW, learning rate, warmup, EMA, fine-tune và train từ đầu | [train.py](../../train.py), [yolo/ema.py](../../yolo/ema.py) | `check.py 14`, `16` |
+| [05-vong-lap-train.md](05-vong-lap-train.md) | Gradient, AdamW, learning rate, warmup, EMA, train từ đầu (và vì sao không fine-tune) | [train.py](../../train.py), [yolo/ema.py](../../yolo/ema.py) | `check.py 14`, `16` |
 | [06-danh-gia-map.md](06-danh-gia-map.md) | Precision, recall, AP, mAP50, mAP50-95 | [yolo/metrics.py](../../yolo/metrics.py) | `check.py 15` |
-| [07-du-lieu-that-va-cloud.md](07-du-lieu-that-va-cloud.md) | Lấy dataset từ Kaggle, train qua đêm trên máy ảo GCP | [kaggle_data.py](../../kaggle_data.py) | |
+| [07-du-lieu-that-va-cloud.md](07-du-lieu-that-va-cloud.md) | COCO 2017, nhãn COCO JSON và YOLO, train trên GPU, vì sao cần worker | [yolo/dataset.py](../../yolo/dataset.py) | |
 
 Nên đọc theo thứ tự: mỗi file dùng khái niệm của file trước. File 03 và 04 là phần khó nhất, cũng là phần quan trọng
 nhất.
@@ -64,6 +64,8 @@ Khi đọc từng file, hãy luôn hỏi:
 | Thí nghiệm | Kết quả |
 |---|---|
 | Đo `yolov8n.pt` gốc trên coco8 val | mAP50-95 0.600 (Ultralytics đo được 0.608) |
-| Fine-tune 30 epoch trên coco8 | mAP50-95 val 0.600 → 0.636 ở epoch 10 |
+| Fine-tune 30 epoch trên coco8, hướng cũ | mAP50-95 val 0.600 → 0.636 ở epoch 10 |
 | Train từ số 0, 300 epoch, 4 ảnh | Học thuộc: mAP50-95 0.995 trên chính 4 ảnh đó |
-| Fine-tune 3 epoch, dataset biển báo (702 ảnh, 4 class) | mAP50 0.024 → 0.716, mAP50-95 0.019 → 0.581 |
+| Fine-tune 3 epoch, dataset biển báo (702 ảnh, 4 class), hướng cũ | mAP50 0.024 → 0.716, mAP50-95 0.019 → 0.581 |
+| Đo `yolov8n.pt` gốc trên val2017 (5.000 ảnh) | mAP50 0.454, mAP50-95 0.347 (Ultralytics công bố 0.373) |
+| Train từ số 0 trên COCO 2017 | Chưa có (hướng hiện tại, QĐ-10) |

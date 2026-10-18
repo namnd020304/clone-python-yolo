@@ -20,8 +20,8 @@ for imgs, gt_labels, gt_bboxes, mask in train_loader:      # 1 batch
 - **Step:** dịch mỗi `w` một chút ngược hướng gradient, để loss giảm.
 - `zero_grad()` bắt buộc phải có: PyTorch **cộng dồn** gradient qua các lần `backward()`.
 
-Thuật ngữ: một **iteration** là một batch. Một **epoch** là đi hết tập train một lượt. Dataset biển báo có 702 ảnh,
-batch 8, nên 88 iteration mỗi epoch.
+Thuật ngữ: một **iteration** là một batch. Một **epoch** là đi hết tập train một lượt. COCO train2017 có 118.287
+ảnh, batch 16, nên 7.393 iteration mỗi epoch (thanh tiến trình ghi `.../7393`).
 
 ## 2. Optimizer: AdamW
 
@@ -62,6 +62,13 @@ $$
 | 4 (biển báo) | 0.00125 |
 
 Có lr này, fine-tune giữ được rồi còn tăng mAP (0.600 → 0.636).
+
+### Train từ số 0 cần lr lớn hơn
+
+Công thức trên dành cho fine-tune và job ngắn: trọng số đã tốt, chỉ cần chỉnh nhẹ. Train từ số 0 thì ngược lại, trọng
+số ngẫu nhiên phải đi rất xa. Với 80 class công thức cho 0.000119, quá nhỏ. Job COCO từ số 0 của repo dùng
+`--lr 0.001` (Ultralytics với job dài dùng SGD lr 0.01; Adam đi bước lớn hơn SGD với cùng lr nên cần lr nhỏ hơn).
+Con số 0.001 chưa được so với giá trị khác; khi có kết quả 30 epoch sẽ xem lại.
 
 ### Warmup rồi giảm dần theo cosine
 
@@ -115,15 +122,18 @@ cao hơn và dao động ít hơn giữa các lần đo.
 
 ## 6. Train từ đầu và fine-tune
 
+Repo chọn **train từ đầu** (QĐ-10): mục tiêu là tự build model, không phải chỉnh model của người khác.
+
 | | Train từ đầu | Fine-tune từ `yolov8n.pt` |
 |---|---|---|
 | Khởi đầu | Trọng số ngẫu nhiên + bias đặc biệt (file 02) | Trọng số đã học trên 118 nghìn ảnh COCO |
 | Dữ liệu cần | Rất nhiều (hàng chục nghìn ảnh) | Vài trăm ảnh là dùng được |
 | Thời gian | Ultralytics: 500 epoch COCO trên nhiều GPU | Vài chục epoch |
-| Repo này | 4 ảnh: học thuộc được, không tổng quát | Biển báo 3 epoch: mAP50 0.716 |
+| Repo này | 4 ảnh: học thuộc được, không tổng quát. COCO 118 nghìn ảnh: đang làm | Biển báo 3 epoch: mAP50 0.716 (hướng cũ, đã bỏ) |
 
 Backbone đã học trên COCO biết "nhìn" cạnh, góc, kết cấu, hình dạng. Những thứ đó dùng được cho gần như mọi bài toán
-ảnh. Fine-tune chỉ phải dạy phần cuối.
+ảnh. Fine-tune chỉ phải dạy phần cuối, nên nhanh, nhưng phần quý nhất của model lại do người khác train. Train từ
+đầu trên COCO tốn hơn nhiều (Ultralytics: 500 epoch) nhưng mọi trọng số đều do code của repo học ra.
 
 ### Phép thử "học thuộc" (overfit test)
 
@@ -150,7 +160,7 @@ epoch    3/3  box 0.752  cls 0.875  dfl 1.000  lr 0.00001  185.5s  |  mAP50 0.71
 ## Tự kiểm tra
 
 1. Quên `optimizer.zero_grad()` thì chuyện gì xảy ra sau 10 bước?
-2. Công thức cho fine-tune 4 class lr lớn gấp hơn 10 lần so với 80 class. Công thức này là kinh nghiệm của
+2. Vì sao train từ số 0 cần lr lớn hơn fine-tune? Công thức cho fine-tune 4 class lr lớn gấp hơn 10 lần so với 80 class. Công thức này là kinh nghiệm của
    Ultralytics, không phải định lý. Thử nghĩ một lý do hợp lý. *(Gợi ý: với 4 class, nhánh class được học lại từ đầu,
    còn với 80 class mọi trọng số đều đã tốt sẵn.)*
 3. Log ghi loss train giảm đều, mAP val tăng tới epoch 10 rồi giảm. Nên dùng checkpoint nào?

@@ -16,6 +16,7 @@ mới biết, hãy bổ sung vào tài liệu tương ứng sau khi đã hỏi �
 | 6 | [kien-truc/quyet-dinh.md](kien-truc/quyet-dinh.md) | Vì sao code như hiện tại, khi nào nên xem lại | 15 phút |
 | 7 | [huong-dan/cai-dat-moi-truong.md](huong-dan/cai-dat-moi-truong.md) | Cài máy, chạy `check.py` tới khi qua 16/16 | 30 phút |
 | 8 | [huong-dan/quy-trinh-lam-viec.md](huong-dan/quy-trinh-lam-viec.md) | Thế nào là xong, quy ước code, git, cập nhật tài liệu | 10 phút |
+| 8b | [ban-giao/quy-trinh-train.md](ban-giao/quy-trinh-train.md) | Train COCO từ số 0: dữ liệu, lệnh bắt đầu train, theo dõi, resume | 20 phút |
 | 9 | [train/README.md](train/README.md) | Lý thuyết giai đoạn train (bước 10–16), đọc khi cần đào sâu | 2–3 giờ |
 | 10 | [ban-giao/nhat-ky.md](ban-giao/nhat-ky.md) | Lịch sử: đã thử gì, số đo, vì sao đổi | Khi cần |
 
@@ -24,7 +25,7 @@ mới biết, hãy bổ sung vào tài liệu tương ứng sau khi đã hỏi �
 | File | Nội dung | Cập nhật khi nào |
 |---|---|---|
 | [ke-hoach-hoc.md](ke-hoach-hoc.md) | Plan học: mục tiêu, 3 giai đoạn, bước 1–16 và phần còn lại, học song song C++ | Khi đổi lộ trình. Là căn cứ gốc |
-| [huong-dan/cai-dat-moi-truong.md](huong-dan/cai-dat-moi-truong.md) | Từ máy trắng đến chạy được `check.py`, lỗi thường gặp | Khi thêm thư viện, công cụ |
+| [huong-dan/cai-dat-moi-truong.md](huong-dan/cai-dat-moi-truong.md) | Từ máy trắng (uv, GPU) đến chạy được `check.py`, lỗi thường gặp | Khi thêm thư viện, công cụ |
 | [huong-dan/van-hanh.md](huong-dan/van-hanh.md) | Các lệnh: chấm, nạp trọng số, lấy dữ liệu, train, dự đoán, camera, train trên GCP | Khi thêm/đổi lệnh hoặc tham số |
 | [huong-dan/quy-trinh-lam-viec.md](huong-dan/quy-trinh-lam-viec.md) | Thế nào là "xong", quy tắc code, git, làm với AI | Khi đổi quy ước |
 | [kien-truc/tong-quan-kien-truc.md](kien-truc/tong-quan-kien-truc.md) | Module, shape tensor qua từng khâu, nơi lưu file | Khi thêm module hoặc đổi luồng |
@@ -32,7 +33,9 @@ mới biết, hãy bổ sung vào tài liệu tương ứng sau khi đã hỏi �
 | [train/](train/README.md) | Lý thuyết từng bước train (01–07), có ví dụ số và câu tự kiểm tra | Khi code train đổi |
 | [ban-giao/trang-thai.md](ban-giao/trang-thai.md) | Bước xong / đang làm / chưa làm, bảng kết quả đo | Cuối mỗi buổi làm |
 | [ban-giao/nhat-ky.md](ban-giao/nhat-ky.md) | Nhật ký theo ngày | Cuối mỗi buổi làm |
+| [ban-giao/nhat-ky-train.md](ban-giao/nhat-ky-train.md) | Nhật ký quá trình train: từng lần chạy, số đo theo epoch, sự cố phát sinh | Mỗi khi một lần train có epoch mới, sự cố hoặc kết thúc |
 | [ban-giao/van-de-mo.md](ban-giao/van-de-mo.md) | Câu hỏi chưa có lời đáp, việc chờ quyết | Khi có câu hỏi mới hoặc đã chốt |
+| [ban-giao/quy-trinh-train.md](ban-giao/quy-trinh-train.md) | Quy trình train COCO từ số 0: dữ liệu, lệnh, theo dõi, resume, job GCP, lỗi thường gặp | Khi đổi `train.py` hoặc cách train |
 | [ban-giao/checklist-ban-giao.md](ban-giao/checklist-ban-giao.md) | Danh sách phải làm trước khi giao repo cho người khác | Trước khi bàn giao |
 | [bao-cao-yolov8n.docx](bao-cao-yolov8n.docx) | Báo cáo toàn bộ quy trình (12/10/2026), viết cho người đọc không cần xem code | Khi cần báo cáo lại |
 

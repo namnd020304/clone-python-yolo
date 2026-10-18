@@ -72,7 +72,9 @@ thí nghiệm học thuộc 4 ảnh báo "mAP50-95 0.995" nghĩa là đã hoàn 
 - **mAP50-95**: trung bình thêm trên 10 ngưỡng 0.50 … 0.95. Ngưỡng 0.95 đòi box gần như khít tuyệt đối. Con số này đo
   cả "box có chính xác không", và là chỉ số chính của COCO. `best.pt` được chọn theo nó.
 
-Ví dụ thật: biển báo sau 3 epoch đạt mAP50 0.716 nhưng mAP50-95 0.581: model tìm ra biển khá tốt, box chưa khít hẳn.
+Ví dụ thật: `yolov8n.pt` gốc trên COCO val2017 đo bằng code repo được mAP50 0.454 nhưng mAP50-95 chỉ 0.347. Ở ngưỡng
+IoU 0.5 model tìm ra gần một nửa số vật; đòi box khít hơn thì điểm tụt dần. (Thí nghiệm cũ trên biển báo: mAP50 0.716,
+mAP50-95 0.581 sau 3 epoch.)
 
 ## 6. Chi tiết khi đo
 

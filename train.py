@@ -1,29 +1,37 @@
 """Bước 14: train YOLOv8n tự viết.
 
     python train.py --epochs 150 --val-split train            # train từ đầu, overfit 4 ảnh train của coco8
-    python train.py --weights yolov8n.pt --epochs 30           # fine-tune từ trọng số gốc (cần ultralytics)
-    python train.py --data datasets/bien-bao --weights yolov8n.pt   # dataset riêng (tạo bằng kaggle_data.py)
+    python train.py --data ../data/coco --train-split train2017 --val-split val2017 --lr 0.001 --workers 8   # COCO từ số 0
+    (lệnh chuẩn đầy đủ: docs/ban-giao/quy-trinh-train.md mục 3.2)
 
 --data là thư mục có images/<split> và labels/<split>; để "coco8" thì tự tải về datasets/coco8.
 Nếu thư mục có classes.txt (mỗi dòng một tên class) thì số class và tên class lấy từ đó, không cần --nc.
 Checkpoint lưu vào --out (last.pt, best.pt) là trọng số EMA; xem kết quả bằng predict.py.
 Bị ngắt giữa chừng: chạy lại đúng lệnh cũ thêm --resume <out>/last.pt.
 Augmentation khi train: mosaic (tắt ở --close-mosaic epoch cuối), lật ngang, đổi độ sáng; --no-augment tắt hết.
+Train bị lỗi giữa chừng thì gửi WhatsApp báo (cần đặt WHATSAPP_PHONE, CALLMEBOT_APIKEY; xem yolo/notify.py).
 """
 import argparse
 import sys
 import math
+import socket
 import time
+import traceback
 from pathlib import Path
 
 import torch
 from torch import nn
+from tqdm import tqdm
 
 from yolo.dataset import COCO_NAMES, YoloDataset, collate, download_coco8
 from yolo.ema import ModelEMA
 from yolo.loss import DetectionLoss
 from yolo.metrics import evaluate
 from yolo.model import YOLOv8n
+from yolo.notify import send_whatsapp
+
+# main() ghi tiến độ vào đây để tin báo lỗi biết train dừng ở đâu
+progress = {"epoch": 0, "epochs": 0, "out": ""}
 
 
 def load_pretrained(model: YOLOv8n, path: str) -> None:
@@ -60,8 +68,9 @@ def lr_at(it: int, total: int, warmup: int, lr: float, final_ratio: float = 0.01
 
 
 def main():
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="coco8")
     ap.add_argument("--train-split", default="train")
@@ -99,6 +108,7 @@ def main():
         args.lr = round(0.002 * 5 / (4 + args.nc), 6)  # 80 class -> 0.000119; ít class -> lr lớn hơn
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    progress.update(epochs=args.epochs, out=str(out))
 
     train_set = YoloDataset(data / "images" / args.train_split, args.size, augment=not args.no_augment,
                             mosaic=args.mosaic)
@@ -133,12 +143,14 @@ def main():
         print(f"Trước khi train: mAP50 {m50:.3f}  mAP50-95 {m:.3f}")
 
     for epoch in range(start, args.epochs + 1):
+        progress["epoch"] = epoch
         model.train()
         if train_set.mosaic and epoch > args.epochs - args.close_mosaic:
             train_set.mosaic = 0.0
             print(f"Tắt mosaic từ epoch {epoch}")
         t0, sums = time.time(), torch.zeros(3)
-        for imgs, gt_labels, gt_bboxes, mask in train_loader:
+        bar = tqdm(train_loader, desc=f"epoch {epoch}/{args.epochs}", leave=False, dynamic_ncols=True)
+        for imgs, gt_labels, gt_bboxes, mask in bar:
             for g in optimizer.param_groups:
                 g["lr"] = lr_at(it, total, warmup, args.lr)
             imgs, gt_labels, gt_bboxes, mask = (t.to(device) for t in (imgs, gt_labels, gt_bboxes, mask))
@@ -152,10 +164,12 @@ def main():
             sums += loss.detach().cpu()
             it += 1
             n = it - (epoch - 1) * len(train_loader)
+            box, cls, dfl = (sums / n).tolist()
+            bar.set_postfix_str(f"box {box:.3f}  cls {cls:.3f}  dfl {dfl:.3f}  lr {optimizer.param_groups[0]['lr']:.5f}")
             if args.log_every and n % args.log_every == 0:
-                box, cls, dfl = (sums / n).tolist()
-                print(f"  epoch {epoch} vòng {n}/{len(train_loader)}  box {box:.3f}  cls {cls:.3f}  dfl {dfl:.3f}  "
-                      f"{time.time() - t0:.0f}s", flush=True)
+                bar.write(f"  epoch {epoch} vòng {n}/{len(train_loader)}  box {box:.3f}  cls {cls:.3f}  dfl {dfl:.3f}  "
+                          f"{time.time() - t0:.0f}s")
+        bar.close()
         box, cls, dfl = (sums / len(train_loader)).tolist()
         line = (f"epoch {epoch:4d}/{args.epochs}  box {box:.3f}  cls {cls:.3f}  dfl {dfl:.3f}  "
                 f"lr {optimizer.param_groups[0]['lr']:.5f}  {time.time() - t0:.1f}s")
@@ -179,5 +193,24 @@ def main():
     print(f"Xong. mAP50-95 tốt nhất {best:.3f}, checkpoint ở {out}")
 
 
+def report_crash(e: Exception) -> None:
+    frames = traceback.extract_tb(e.__traceback__)
+    root = Path(__file__).resolve().parent
+    ours = [f for f in frames if Path(f.filename).resolve().is_relative_to(root)] or frames  # dòng code project gây lỗi
+    where = f"{Path(ours[-1].filename).name}:{ours[-1].lineno} ({ours[-1].name})" if ours else "?"
+    lines = [f"❌ Train YOLO dừng đột ngột trên {socket.gethostname()}",
+             f"Lúc {time.strftime('%Y-%m-%d %H:%M:%S')}, epoch {progress['epoch']}/{progress['epochs']}",
+             f"Lỗi: {type(e).__name__}: {e}"[:600],
+             f"Tại: {where}"]
+    last = Path(progress["out"]) / "last.pt" if progress["out"] else None
+    if last and last.exists():
+        lines += ["", f"Chạy tiếp: thêm --resume {last}"]
+    send_whatsapp("\n".join(lines))
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:  # Ctrl+C (KeyboardInterrupt) là chủ động dừng nên không báo
+        report_crash(e)
+        raise

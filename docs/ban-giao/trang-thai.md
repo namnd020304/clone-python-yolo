@@ -1,6 +1,6 @@
 # Trạng thái
 
-Cập nhật lần cuối: 15/10/2026. Cập nhật cuối mỗi buổi làm.
+Cập nhật lần cuối: 17/10/2026. Cập nhật cuối mỗi buổi làm.
 
 Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach-hoc.md](../ke-hoach-hoc.md). File này chỉ ghi bước
 đã xong, đang làm, bị chặn. Bước không có ở đây là chưa bắt đầu.
@@ -9,14 +9,17 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 
 - Giai đoạn 1 (bước 1–9) và giai đoạn 2 (bước 10–16) đã viết xong. `check.py` qua 16/16 (12/10).
 - Model tự viết khớp Ultralytics: đầu ra lệch 6,1e-05 khi nạp `yolov8n.pt`; loss sai khác 0,0.
-- Model tốt nhất hiện có: `runs/bien-bao/best.pt`, dataset biển báo 4 class, **mAP50-95 0.705, mAP50 0.836** trên
+- **Hướng mới (16/10, QĐ-10):** chỉ train từ số 0 trên COCO 2017, trên GPU máy dev (RTX 5070 Ti, ~14,5 phút/epoch).
+  Không dùng biển báo và fine-tune nữa. Lệnh: [quy-trinh-train.md](quy-trinh-train.md) mục 3.2.
+- Model biển báo cũ (lưu trữ, không phát triển tiếp): `runs/bien-bao/best.pt`, dataset biển báo 4 class, **mAP50-95 0.705, mAP50 0.836** trên
   175 ảnh val (12/10, 100 epoch trên máy ảo GCP, **chưa có** EMA + mosaic).
 - Mọi thứ đã commit và push (`0fa7f9d`, 15/10). `best.pt` + `train.log` nằm ở
   [Release v1.0](https://github.com/namnd020304/clone-python-yolo/releases/tag/v1.0).
 - **Đang chạy:** train YOLOv8n từ số 0 trên COCO 2017, 30 epoch, VM GCP `yolo-coco` (`us-east1-b`), bắt đầu
   05:06 UTC 15/10, dự kiến xong ~21/10. Xem: `gcloud compute ssh yolo-coco --zone=us-east1-b
   --command="tail -5 ~/yolo/runs/coco-scratch/train.log"`. Xong thì lấy `runs/` về và **xoá VM**.
-- Làm tiếp được ngay: train lại `bien-bao` có EMA + mosaic để so với 0.705 (van-de-mo #1).
+- **Đã xong (17/10):** train COCO 30 epoch từ số 0 trên GPU máy dev (13:55 16/10 → 01:29 17/10, ~11,6 giờ): **mAP50-95 0.261, mAP50 0.354** (epoch 25; epoch 30 bằng 0.261). Bằng ~75% mốc 0.347 của `yolov8n.pt` gốc. Chưa hội tụ; chi tiết ở [nhat-ky-train.md](nhat-ky-train.md). Model: `runs/coco-gpu/best.pt`.
+- Làm tiếp được ngay: so với job GCP khi xong; quyết có train dài hơn không (van-de-mo #8).
 
 ## Theo plan
 
@@ -41,7 +44,9 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 | 2b | Báo cáo `docs/bao-cao-yolov8n.docx` | Xong (12/10) | Chưa xem giao diện trong Word |
 | — | Tài liệu bàn giao `docs/` | Xong bản đầu (15/10) | |
 | 6.1 | Resume từ `last.pt` | Xong (15/10) | `--resume`; thử trên coco8 |
-| — | Train COCO từ số 0 | Đang chạy (15/10) | 30 epoch, ~4,7 giờ/epoch |
+| — | Train COCO từ số 0 trên GCP CPU | Đang chạy (15/10) | 30 epoch, ~4,7 giờ/epoch |
+| — | Train COCO từ số 0 trên GPU máy dev | Xong (17/10) | 30 epoch, ~11,6 giờ (epoch chậm gấp đôi từ epoch 16, chưa rõ lý do); mAP50-95 0.261 |
+| — | Tài liệu `quy-trinh-train.md` | Xong (16/10) | Chỉ COCO, từ số 0 |
 | 6.2 | HSV, xoay / co giãn | Chưa làm | |
 | 3 | Port C++ / LibTorch | Chưa làm | Chờ học xong C1–C3 |
 
@@ -56,7 +61,11 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 | Train từ số 0, 4 ảnh coco8, 300 epoch | mAP50-95 0.995 (không EMA) / 0.995 (có EMA) | 11/10, 12/10 |
 | Biển báo, fine-tune 3 epoch (máy nhà) | mAP50 0.024 → 0.716, mAP50-95 0.019 → 0.581 | 11/10 |
 | **Biển báo, fine-tune 100 epoch (GCP)** | **best epoch 75: mAP50 0.836, mAP50-95 0.705** | 12/10 |
-| Biển báo, EMA + mosaic | Chưa đo | |
+| Biển báo, EMA + mosaic | Bỏ, không đo (QĐ-10) | 16/10 |
+| `yolov8n.pt` gốc trên val2017, code repo | mAP50 0.454 / mAP50-95 0.347 (Ultralytics công bố 0.373); 3,6 phút | 16/10 |
+| Tốc độ train COCO, RTX 5070 Ti, batch 16 | 0 / 8 / 16 worker: 17 / 136 / 133 ảnh/s | 16/10 |
+| **COCO từ số 0, 30 epoch, GPU máy dev** | **mAP50 0.354 / mAP50-95 0.261** (epoch 25; epoch 30: 0.353 / 0.261). Theo epoch 5/10/15/20/25/30: 0.137 / 0.213 / 0.235 / 0.247 / 0.261 / 0.261 | 17/10 |
+| COCO từ số 0, 30 epoch, GCP CPU | Chưa có (chưa kiểm job) | |
 | Camera CPU máy nhà, `--size` 640 / 480 / 320 | ~5 / ~6 / ~9,5 FPS | 12/10 |
 
 Dữ liệu biển báo: Kaggle `andrewmvd/road-sign-detection`, 702 ảnh train, 175 ảnh val, 4 class
