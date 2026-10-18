@@ -21,7 +21,11 @@ class Conv(nn.Module):
 
 
 class Bottleneck(nn.Module):
-    """Bước 2: hai Conv 3x3 nối tiếp; nếu shortcut=True thì cộng thêm x vào đầu ra (residual)."""
+    """Bước 2: hai Conv 3x3 nối tiếp; nếu shortcut=True thì cộng thêm x vào đầu ra (residual).
+
+    Trong YOLOv8, Bottleneck chỉ dùng bên trong C2f và luôn giữ nguyên số kênh c -> c,
+    nên phép cộng residual lúc nào cũng hợp lệ về shape.
+    """
 
     def __init__(self, c: int, shortcut: bool = True):
         super().__init__()
@@ -30,7 +34,10 @@ class Bottleneck(nn.Module):
         self.shortcut = shortcut
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x + self.conv2(self.conv1(x)) if self.shortcut else self.conv2(self.conv1(x))
+        out = self.conv2(self.conv1(x))
+        if self.shortcut:
+            out = out + x
+        return out
 
 
 class C2f(nn.Module):
