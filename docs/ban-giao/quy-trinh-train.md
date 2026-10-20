@@ -154,11 +154,17 @@ loss trung bình từ đầu epoch và lr. Hết epoch thì thanh biến mất, 
 log):
 
 ```
-epoch    5/30  box 1.512  cls 1.893  dfl 1.402  lr 0.00097  871.2s  |  mAP50 0.xxx  mAP50-95 0.xxx
+epoch    5/30  box 1.512  cls 1.893  dfl 1.402  lr 0.00097  871.2s  |  val box 1.6xx  cls 1.9xx  dfl 1.4xx  mAP50 0.xxx  mAP50-95 0.xxx
 ```
 
-Các số trong dòng trên chỉ để minh hoạ định dạng. Phần `| mAP...` chỉ có ở epoch có đo mAP; khi đo có thêm một thanh
-`val` (313 batch, ~3,6 phút).
+Các số trong dòng trên chỉ để minh hoạ định dạng. Phần sau `|` chỉ có ở epoch có đo; khi đo có thêm một thanh
+`val` (313 batch, ~3,6 phút). `val box/cls/dfl` là loss trên tập val, tính cùng lượt forward đo mAP nên không tốn
+thêm thời gian; loss train giảm mà loss val tăng là dấu hiệu học thuộc. Lưu ý loss train đo trên ảnh có augment, loss
+val thì không, nên hai số không so trực tiếp được, chỉ xem xu hướng.
+
+Thêm `--train-eval N` (ví dụ 500) thì mỗi lần đo có thêm phần `| train mAP50 ... mAP50-95 ...`: mAP trên N ảnh train
+cố định, không augment. mAP train cao mà val thấp là học thuộc; cả hai cùng thấp là model chưa học được (như van-de-mo
+#2). Thời gian tăng theo N (500 ảnh ≈ 1/10 thời gian đo val2017).
 
 ### Ghi log ra file
 

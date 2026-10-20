@@ -72,6 +72,34 @@ Epoch 6–9, 11–14, 16–19, 22–24, 26–29 không đo mAP (`--eval-every 5`
   `best.pt` và `last.pt` khác nhau thế nào về mAP chính xác hơn 3 chữ số.
 - Chưa so với job GCP (lần 2) vì chưa lấy được kết quả của nó.
 
+**So sánh với `yolov8n.pt` gốc (18/10)**
+
+Cả hai chạy qua cùng code repo (`letterbox` 640, `postprocess` conf 0.25), cùng kiến trúc 3.157.184 tham số; trọng số
+gốc nạp bằng `load_from_ultralytics`. Ảnh thử là `bus.jpg` và `zidane.jpg` có sẵn trong gói ultralytics (không thuộc
+val2017).
+
+| | `best.pt` (lần này, epoch 25) | `yolov8n.pt` gốc |
+|---|---|---|
+| Train | Từ số 0, 30 epoch, ~11,6 giờ, 1 GPU | Từ số 0, 500 epoch (Ultralytics) |
+| mAP50 / mAP50-95 val2017, code repo | 0.354 / 0.261 | 0.454 / 0.347 |
+| Tỉ lệ so với bản gốc | 78% / 75% | 100% |
+| `bus.jpg` | 5 box: 4 person 0.86 / 0.84 / 0.81 / 0.48, bus 0.81 | 5 box: 4 person 0.89 / 0.88 / 0.88 / 0.44, bus 0.84 |
+| `zidane.jpg` | 2 box: person 0.90, person 0.62 | 3 box: person 0.83, person 0.83, tie 0.28 |
+| Tốc độ CPU máy dev, ảnh 640 | 152 ms/ảnh | 149 ms/ảnh |
+| File | 12,8 MB (float32, có `names`, `epoch`, `map`) | 6,5 MB (float16) |
+
+Nhận xét:
+
+- **Với vật to và rõ thì ngang bản gốc.** `bus.jpg` tìm đủ cùng 5 đối tượng, điểm thấp hơn 0,03–0,07; box gần trùng
+  bản gốc. Người bị cắt ở mép trái còn được điểm cao hơn một chút (0.48 so với 0.44).
+- **Chênh lệch nằm ở vật khó.** Ở `zidane.jpg`, người đang chỉ tay (dáng cúi, tay duỗi) chỉ được 0.62 so với 0.83,
+  và box dừng trước bàn tay (cạnh phải 1061 so với 1113). Model không thấy cà vạt (vật nhỏ, hẹp), bản gốc thấy ở 0.28.
+  Điều này khớp với mAP50-95 thấp hơn ~25%: thiếu nhiều nhất ở vật nhỏ và box cần khít.
+- Tốc độ như nhau vì cùng kiến trúc; chênh 3 ms là nhiễu đo. File `best.pt` nặng gấp đôi chỉ vì lưu float32.
+- Hai ảnh chỉ để minh hoạ, không đủ để kết luận; số so sánh chính là mAP trên 5.000 ảnh val2017.
+- Trên ảnh biển báo (`docs/images`), model này không nhận ra biển: ở conf 0.25 ra 0 box. Đúng như dự kiến vì COCO
+  chỉ có `stop sign`, không có biển giới hạn tốc độ hay vạch qua đường; model biển báo là lần 1.
+
 **Hiện tượng bất thường: thời gian mỗi epoch tăng gần gấp đôi từ epoch 15–16.** Epoch 1–14: 878–986 s. Epoch 15:
 1287 s. Epoch 16 trở đi: ~1640–1795 s, giữ nguyên tới epoch 30 (kể cả sau khi tắt mosaic ở epoch 21, nên không phải do
 mosaic). Không có thay đổi cấu hình giữa chừng trong log. **Chưa biết nguyên nhân** (nghi ngờ máy nóng/giảm xung,

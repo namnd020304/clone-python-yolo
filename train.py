@@ -8,6 +8,8 @@
 Nếu thư mục có classes.txt (mỗi dòng một tên class) thì số class và tên class lấy từ đó, không cần --nc.
 Checkpoint lưu vào --out (last.pt, best.pt) là trọng số EMA; xem kết quả bằng predict.py.
 Bị ngắt giữa chừng: chạy lại đúng lệnh cũ thêm --resume <out>/last.pt.
+Mỗi lần đo (--eval-every) in loss và mAP trên val; --train-eval N đo thêm mAP trên N ảnh train cố định (không
+augment) để so: train cao mà val thấp là học thuộc, cả hai cùng thấp là model chưa học được.
 Augmentation khi train: mosaic (tắt ở --close-mosaic epoch cuối), lật ngang, đổi độ sáng; --no-augment tắt hết.
 Train bị lỗi giữa chừng thì gửi WhatsApp báo (cần đặt WHATSAPP_PHONE, CALLMEBOT_APIKEY; xem yolo/notify.py).
 """
@@ -88,6 +90,7 @@ def main():
     ap.add_argument("--close-mosaic", type=int, default=10, help="tắt mosaic ở N epoch cuối")
     ap.add_argument("--no-ema", action="store_true")
     ap.add_argument("--eval-every", type=int, default=10)
+    ap.add_argument("--train-eval", type=int, default=0, help="đo thêm mAP trên N ảnh train mỗi lần eval; 0 = tắt")
     ap.add_argument("--log-every", type=int, default=0, help="in loss mỗi N vòng lặp trong epoch; 0 = không in")
     ap.add_argument("--workers", type=int, default=0)
     ap.add_argument("--out", default="runs/train")
@@ -116,6 +119,12 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_set, args.batch, shuffle=True, collate_fn=collate,
                                                num_workers=args.workers, drop_last=False)
     val_loader = torch.utils.data.DataLoader(val_set, args.batch, collate_fn=collate, num_workers=args.workers)
+    train_eval_loader = None
+    if args.train_eval > 0:
+        plain = YoloDataset(data / "images" / args.train_split, args.size)  # không augment, giống val
+        pick = torch.randperm(len(plain), generator=torch.Generator().manual_seed(0))[:args.train_eval].tolist()
+        train_eval_loader = torch.utils.data.DataLoader(torch.utils.data.Subset(plain, pick), args.batch,
+                                                        collate_fn=collate, num_workers=args.workers)
 
     model = YOLOv8n(args.nc).to(device)
     if args.weights:
@@ -139,7 +148,7 @@ def main():
         best, it, start = ckpt["best"], ckpt["it"], ckpt["epoch"] + 1
         print(f"Chạy tiếp từ epoch {start} ({args.resume})")
     elif args.weights:
-        m50, m = evaluate(model, val_loader)
+        m50, m, _ = evaluate(model, val_loader)
         print(f"Trước khi train: mAP50 {m50:.3f}  mAP50-95 {m:.3f}")
 
     for epoch in range(start, args.epochs + 1):
@@ -177,8 +186,11 @@ def main():
         final = ema.ema if ema else model
         m = None
         if epoch % args.eval_every == 0 or epoch == args.epochs:
-            m50, m = evaluate(final, val_loader)
-            line += f"  |  mAP50 {m50:.3f}  mAP50-95 {m:.3f}"
+            m50, m, vl = evaluate(final, val_loader, criterion=criterion)
+            line += f"  |  val box {vl[0]:.3f}  cls {vl[1]:.3f}  dfl {vl[2]:.3f}  mAP50 {m50:.3f}  mAP50-95 {m:.3f}"
+            if train_eval_loader:
+                t50, t, _ = evaluate(final, train_eval_loader, desc="train-eval")
+                line += f"  |  train mAP50 {t50:.3f}  mAP50-95 {t:.3f}"
             if m > best:
                 best = m
                 torch.save({"model": final.state_dict(), "epoch": epoch, "nc": args.nc, "names": names, "map": m},

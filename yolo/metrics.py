@@ -70,8 +70,13 @@ def mean_ap(tp: torch.Tensor, conf: torch.Tensor, pred_cls: torch.Tensor, gt_cls
 
 
 @torch.no_grad()
-def evaluate(model: torch.nn.Module, loader, conf_thres: float = 0.001, iou_thres: float = 0.7) -> tuple[float, float]:
-    """Chạy model trên cả loader (ngưỡng điểm rất thấp để có đủ đường precision-recall), trả về mAP50, mAP50-95."""
+def evaluate(model: torch.nn.Module, loader, conf_thres: float = 0.001, iou_thres: float = 0.7, criterion=None,
+             desc: str = "val") -> tuple[float, float, torch.Tensor | None]:
+    """Chạy model trên cả loader (ngưỡng điểm rất thấp để có đủ đường precision-recall).
+
+    Trả về (mAP50, mAP50-95, loss). Có criterion (DetectionLoss) thì loss là (3,) = [box, cls, dfl] trung bình theo
+    ảnh, tính cùng lượt forward đó; không có thì None.
+    """
     from tqdm import tqdm
 
     from .postprocess import postprocess
@@ -80,8 +85,21 @@ def evaluate(model: torch.nn.Module, loader, conf_thres: float = 0.001, iou_thre
     model.eval()
     device = next(model.parameters()).device
     tps, confs, pcls, gcls = [], [], [], []
-    for imgs, gt_labels, gt_bboxes, mask in tqdm(loader, desc="val", leave=False, dynamic_ncols=True):
-        out = model(imgs.to(device)).cpu()
+    loss_sum, n_img = torch.zeros(3), 0
+    for imgs, gt_labels, gt_bboxes, mask in tqdm(loader, desc=desc, leave=False, dynamic_ncols=True):
+        imgs = imgs.to(device)
+        if criterion is None:
+            out = model(imgs)
+        else:
+            # chỉ bật cờ training của riêng Head để lấy đầu ra thô cho loss; BatchNorm bên trong vẫn ở chế độ eval
+            model.head.training = True
+            raw = model(imgs)
+            model.head.training = False
+            loss = criterion(raw, gt_labels.to(device), gt_bboxes.to(device), mask.to(device))
+            loss_sum += loss.cpu() * len(imgs)
+            n_img += len(imgs)
+            out = model.head.decode(*raw)
+        out = out.cpu()
         for i in range(len(imgs)):
             pred = postprocess(out[i:i + 1], conf_thres, iou_thres)[:300]
             keep = mask[i, :, 0].bool()
@@ -91,4 +109,5 @@ def evaluate(model: torch.nn.Module, loader, conf_thres: float = 0.001, iou_thre
             pcls.append(pred[:, 5])
             gcls.append(gt[:, 0])
     model.train(was_training)
-    return mean_ap(torch.cat(tps), torch.cat(confs), torch.cat(pcls), torch.cat(gcls))
+    m50, m = mean_ap(torch.cat(tps), torch.cat(confs), torch.cat(pcls), torch.cat(gcls))
+    return m50, m, (loss_sum / n_img if criterion is not None else None)

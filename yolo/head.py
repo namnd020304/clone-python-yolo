@@ -82,6 +82,10 @@ class Head(nn.Module):
         anchors, strides = make_anchors(feats, self.strides)                              # (A, 2), (A, 1)
         if self.training:
             return box, cls, anchors, strides
+        return self.decode(box, cls, anchors, strides)
+
+    def decode(self, box: torch.Tensor, cls: torch.Tensor, anchors: torch.Tensor, strides: torch.Tensor) -> torch.Tensor:
+        """Đầu ra thô (như ở chế độ train) -> (B, 4 + num_classes, A) như ở chế độ eval."""
         dist = self.dfl(box)        # (B, 4, A): l, t, r, b theo đơn vị ô
         anchors = anchors.T[None]   # (1, 2, A)
         strides = strides.T[None]   # (1, 1, A)

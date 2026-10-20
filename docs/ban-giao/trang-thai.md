@@ -65,6 +65,7 @@ Cách đọc: danh sách bước và cách kiểm chứng nằm ở [../ke-hoach
 | `yolov8n.pt` gốc trên val2017, code repo | mAP50 0.454 / mAP50-95 0.347 (Ultralytics công bố 0.373); 3,6 phút | 16/10 |
 | Tốc độ train COCO, RTX 5070 Ti, batch 16 | 0 / 8 / 16 worker: 17 / 136 / 133 ảnh/s | 16/10 |
 | **COCO từ số 0, 30 epoch, GPU máy dev** | **mAP50 0.354 / mAP50-95 0.261** (epoch 25; epoch 30: 0.353 / 0.261). Theo epoch 5/10/15/20/25/30: 0.137 / 0.213 / 0.235 / 0.247 / 0.261 / 0.261 | 17/10 |
+| COCO từ số 0 so với `yolov8n.pt`, `bus.jpg` / `zidane.jpg`, conf 0.25 | `bus`: cùng 5 đối tượng, điểm thấp hơn 0,03–0,07. `zidane`: 2 person (0.90 / 0.62), thiếu tie; bản gốc 2 person 0.83 + tie 0.28. CPU 152 / 149 ms/ảnh. Chi tiết ở [nhat-ky-train.md](nhat-ky-train.md) | 18/10 |
 | COCO từ số 0, 30 epoch, GCP CPU | Chưa có (chưa kiểm job) | |
 | Camera CPU máy nhà, `--size` 640 / 480 / 320 | ~5 / ~6 / ~9,5 FPS | 12/10 |
 
